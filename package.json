@@ -1,0 +1,42 @@
+{
+  "name": "codepath-backend",
+  "description": "CodePath - AI powered competitive programming platform",
+  "main": "app.ts",
+  "scripts": {
+    "start:js": "node dist/app.js",
+    "start:ts": "ts-node src/app.ts",
+    "dev": "nodemon src/app.ts",
+    "build": "tsc",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f pg",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "db:seed": "prisma db seed",
+    "db:push": "prisma db push",
+    "setup:dev": "npm run docker:up && npm run db:generate && npm run db:migrate"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@prisma/client": "^6.18.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "prisma": "^6.18.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/morgan": "^1.9.10",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
+  }
+}
