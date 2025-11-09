@@ -4,6 +4,7 @@ import {
   getContactInfoFromDB,
   getContactInquiriesFromDB,
   getContactInquiryFromDB,
+  sendEmailToMentees,
   updateContactInfoDB,
 } from "../repositories/contact.repo";
 import Joi from "joi";
@@ -81,6 +82,23 @@ export const SendContactInquery = async (req: Request, res: Response) => {
     const { fullName, email, title, message } = value;
     await addContactInquiryToDB(fullName, email, title, message);
     return res.status(201).json({ message: "Inquiry sent successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const sendMassEmailToMentees = async (req: Request, res: Response) => {
+  try {
+    const inputSchema = Joi.object({
+      emailTitle: Joi.string().required(),
+      emailContent: Joi.string().required(),
+    });
+    const { value, error } = inputSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const { emailTitle, emailContent } = value;
+    await sendEmailToMentees(emailTitle, emailContent);
+    return res.status(200).json({ message: "Email sent successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error", error });
   }

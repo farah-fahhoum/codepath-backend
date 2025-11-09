@@ -4,6 +4,7 @@ import {
   getContactInquiries,
   getContactInquiry,
   SendContactInquery,
+  sendMassEmailToMentees,
   updateContactInfo,
 } from "../controllers/contact.controller";
 import { authorize } from "../middlewares/authorization";
@@ -17,5 +18,12 @@ router.post("/info/update", authorize(["Admin"], false), updateContactInfo);
 router.get("/inquiries", authorize(["Admin"], false), getContactInquiries);
 router.get("/inquiries/:id", authorize(["Admin"], false), getContactInquiry);
 router.post("/inquiries/send", SendContactInquery);
+
+//Mass Email to Mentees Routes
+router.post(
+  "/send/mentees",
+  authorize(["Admin"], false),
+  sendMassEmailToMentees
+);
 
 export { router };
