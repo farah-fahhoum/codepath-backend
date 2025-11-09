@@ -12,6 +12,8 @@ Backend for CodePath - AI-powered competitive programming platform. Node.js/Expr
 - **CORS Support** - Cross-origin resource sharing enabled
 - **Request Logging** - Morgan middleware for HTTP request logging
 - **Hot Reload** - Nodemon for development with automatic restarts
+- **Quiz Questions CRUD** - Manage quiz questions; list returns only `questionTitle` and `createdAt`
+- **Email Broadcast** - Send announcements to all mentees via SMTP (Gmail)
 
 ## 📋 Prerequisites
 
@@ -64,6 +66,10 @@ MAX_FILE_SIZE=20971520
 
 # CORS Configuration
 CORS_ORIGIN=http://localhost:3000
+
+# Email (SMTP via Gmail)
+EMAIL_ADDRESS=your-email@gmail.com
+EMAIL_APP_PASSWORD=your-google-app-password
 ```
 
 ### 4. Quick Development Setup
@@ -172,6 +178,8 @@ codepath-backend/
 | `JWT_EXPIRES_IN` | JWT expiration time          | `7d`                    |
 | `MAX_FILE_SIZE`  | Maximum upload file size     | `20971520` (20MB)       |
 | `CORS_ORIGIN`    | Allowed CORS origins         | `http://localhost:3000` |
+| `EMAIL_ADDRESS`  | SMTP sender email (Gmail)    | Required                |
+| `EMAIL_APP_PASSWORD` | Gmail App Password           | Required                |
 
 ## 🔍 Troubleshooting
 
@@ -199,6 +207,8 @@ codepath-backend/
 
 - Ensure the `DATABASE_URL` password matches the one in `docker-compose.yml`
 - Special characters in passwords should be URL-encoded
+- Ensure `JWT_SECRET` is set and matches token generation logic
+- For Gmail SMTP, create an App Password (requires 2FA) and use it in `EMAIL_APP_PASSWORD`
 
 ### Port Conflicts
 
@@ -226,3 +236,17 @@ For support and questions:
 - Check the troubleshooting section above
 - Review the Docker and database logs
 - Ensure all environment variables are properly configured
+## 📚 API Endpoints
+
+### Quiz Questions
+- `POST /quiz/questions` — Create a quiz question
+  - Body: `{ questionTitle: string, answer: string, score: number }`
+- `GET /quiz/questions` — List questions
+  - Returns array of `{ questionTitle, createdAt }` only
+- `GET /quiz/questions/:id` — Get a question by ID
+- `PUT /quiz/questions/:id` — Update a question
+- `DELETE /quiz/questions/:id` — Delete a question
+
+### Contact / Email Broadcast
+- Function: broadcasts email to all mentees using `EMAIL_ADDRESS` and `EMAIL_APP_PASSWORD`
+- Uses BCC for privacy; ensure `Mentee` role exists and users have emails.
