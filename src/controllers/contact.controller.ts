@@ -53,11 +53,11 @@ export const getContactInquiries = async (req: Request, res: Response) => {
 
 export const getContactInquiry = async (req: Request, res: Response) => {
   try {
-    const paramSchema = Joi.object({ id: Joi.string().required() });
+    const paramSchema = Joi.object({ id: Joi.number().required() });
     const { value, error } = paramSchema.validate(req.params);
     if (error) return res.status(400).json({ message: error.message });
 
-    const inquiry = await getContactInquiryFromDB(Number(value.id));
+    const inquiry = await getContactInquiryFromDB(value.id);
     if (!inquiry) {
       return res.status(404).json({ message: "Invalid inquiry id" });
     }
