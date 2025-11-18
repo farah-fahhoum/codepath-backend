@@ -6,6 +6,7 @@ import {
   getQuizQuestionByIdFromDB,
   getQuizQuestionsFromDB,
   updateQuizQuestionInDB,
+  getRandomQuizQuestionsFromDBForMentee,
 } from "../repositories/quiz.repo";
 
 export const getQuizQuestions = async (_req: Request, res: Response) => {
@@ -87,6 +88,24 @@ export const deleteQuizQuestion = async (req: Request, res: Response) => {
     if (adminAffected > 0)
       return res.status(200).json({ message: "Question deleted successfully" });
     else return res.status(404).json({ message: "Invalid question id" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+//Get random questions to form a quiz for the mentee - Questions number is provided by admin
+export const getQuiz = async (req: Request, res: Response) => {
+  try {
+    const querySchema = Joi.object({
+      numberofQuestions: Joi.number().integer().min(1).required(),
+    });
+    const { value, error } = querySchema.validate(req.query);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const questions = await getRandomQuizQuestionsFromDBForMentee(
+      value.numberofQuestions
+    );
+    return res.status(200).json(questions);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }

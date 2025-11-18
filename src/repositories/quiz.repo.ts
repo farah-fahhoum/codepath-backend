@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { quizQuestionList, quizQuestionSafe } from "../types/quiz.type";
+import {
+  quizQuestionForMentee,
+  quizQuestionList,
+  quizQuestionSafe,
+} from "../types/quiz.type";
 
 const prisma = new PrismaClient();
 
@@ -51,4 +55,19 @@ export const deleteQuizQuestionFromDB = async (id: number): Promise<number> => {
   const recordsAffected = await prisma.quizQuestion.delete({ where: { id } });
   if (recordsAffected) return 1;
   else return 0;
+};
+
+export const getRandomQuizQuestionsFromDBForMentee = async (
+  count: number
+): Promise<quizQuestionForMentee[]> => {
+  const all = await prisma.quizQuestion.findMany({
+    select: { id: true, questionTitle: true, score: true },
+  });
+  // Shuffle using Fisher-Yates
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  const n = Math.max(0, Math.min(count, all.length));
+  return all.slice(0, n);
 };

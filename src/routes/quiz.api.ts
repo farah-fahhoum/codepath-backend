@@ -5,6 +5,7 @@ import {
   getQuizQuestion,
   getQuizQuestions,
   updateQuizQuestion,
+  getQuiz,
 } from "../controllers/quiz.controller";
 import { authorize } from "../middlewares/authorization";
 
@@ -28,3 +29,6 @@ router.delete(
   authorize(["Admin"], false),
   deleteQuizQuestion
 );
+
+//Quiz Routes - Mentee
+router.get("/", authorize(["Mentee"], false), getQuiz);

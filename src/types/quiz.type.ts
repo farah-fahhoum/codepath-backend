@@ -10,3 +10,9 @@ export interface quizQuestionList {
   questionTitle: string;
   createdAt: Date;
 }
+
+export interface quizQuestionForMentee {
+  id: number;
+  questionTitle: string;
+  score: number;
+}
