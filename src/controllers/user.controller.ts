@@ -14,6 +14,8 @@ import {
   getAdminsFromDB,
   getMenteeByIdFromDB,
   getMenteesFromDB,
+  getRoleFromDB,
+  getRolesFromDB,
   getUserByEmailForAuth,
   updateAdminInDB,
 } from "../repositories/user.repo";
@@ -248,6 +250,29 @@ export const deleteAdmin = async (req: Request, res: Response) => {
     if (adminAffected > 0)
       return res.status(200).json({ message: "Admin deleted succesfully" });
     else return res.status(404).json({ message: "Invalid admin id" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const getRoles = async (req: Request, res: Response) => {
+  try {
+    const roles = await getRolesFromDB();
+    return res.status(200).json(roles);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const getRole = async (req: Request, res: Response) => {
+  try {
+    const paramSchema = Joi.object({ id: Joi.number().min(1).required() });
+    const { value, error } = paramSchema.validate(req.params);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const role = await getRoleFromDB(value.id);
+    if (role) return res.status(200).json(role);
+    else return res.status(404).json({ message: "Invalid role id" });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }

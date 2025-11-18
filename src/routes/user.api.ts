@@ -1,5 +1,4 @@
 import express from "express";
-const router = express.Router();
 import { authorize } from "../middlewares/authorization";
 import {
   createAdmin,
@@ -8,8 +7,12 @@ import {
   getAdmins,
   getMentee,
   getMentees,
+  getRole,
+  getRoles,
   updateAdmin,
 } from "../controllers/user.controller";
+
+const router = express.Router();
 
 //Admin Routes
 router.get("/admins", getAdmins);
@@ -21,5 +24,9 @@ router.delete("/admins/delete/:id", deleteAdmin);
 //Mentee Routes
 router.get("/mentees", authorize(["Admin"], false), getMentees);
 router.get("/mentees/:id", authorize(["Admin"], false), getMentee);
+
+//Role Routes
+router.get("/roles", authorize(["Admin"], false), getRoles);
+router.get("/roles/:id", authorize(["Admin"], false), getRole);
 
 export { router };

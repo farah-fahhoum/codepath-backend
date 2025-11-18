@@ -25,6 +25,13 @@ export interface menteeDetails {
   bio: string;
   createdAt: Date;
 }
+
+export interface role {
+  id: number;
+  title: string;
+  createdAt: Date;
+}
+
 export type authResponse =
   | "Username not found"
   | "Incorrect password"

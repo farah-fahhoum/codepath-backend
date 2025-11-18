@@ -3,6 +3,7 @@ import {
   adminSafe,
   menteeDetails,
   menteeSafe,
+  role,
   userRoleForAuthType,
 } from "../types/user.type";
 
@@ -207,4 +208,19 @@ export const getMenteeByIdFromDB = async (
   };
   if (!menteeRecord) return null;
   else return result;
+};
+
+export const getRolesFromDB = async (): Promise<role[]> => {
+  const roles = await prisma.role.findMany({
+    select: { id: true, title: true, createdAt: true },
+  });
+  return roles;
+};
+
+export const getRoleFromDB = async (id: number): Promise<role | null> => {
+  const role = await prisma.role.findFirst({
+    where: { id },
+    select: { id: true, title: true, createdAt: true },
+  });
+  return role ?? null;
 };
