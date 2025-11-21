@@ -7,6 +7,7 @@ import { router as authRoutes } from "./routes/auth.api";
 import { router as userRoutes } from "./routes/user.api";
 import { router as contactRoutes } from "./routes/contact.api";
 import { router as quizRoutes } from "./routes/quiz.api";
+import { router as problemRoutes } from "./routes/problem.api";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -24,6 +25,7 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/contact", contactRoutes);
 app.use("/quiz", quizRoutes);
+app.use("/problems", problemRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
