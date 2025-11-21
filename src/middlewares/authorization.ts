@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { checkUserRoleForAuth } from "../repositories/user.repo";
 import { authResponse } from "../types/user.type";
 
@@ -9,7 +9,6 @@ export const authorize =
   (allowedRoles: ("Mentee" | "Admin" | string)[], allowGuest: boolean) =>
   async (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-
     if (
       !req.headers.authorization ||
       !req.headers.authorization.startsWith("Bearer") ||
