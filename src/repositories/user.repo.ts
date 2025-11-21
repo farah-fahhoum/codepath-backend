@@ -1,13 +1,14 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import {
   adminSafe,
   menteeDetails,
+  menteeProfile,
   menteeSafe,
   role,
   userRoleForAuthType,
 } from "../types/user.type";
 
-const prisma = new PrismaClient();
+// Shared Prisma client
 
 export const checkUserRoleForAuth = async (
   id: string
@@ -36,6 +37,26 @@ export const getUserByEmailForAuth = async (
     select: { id: true, email: true, password: true, role: true },
   });
   return user ?? null;
+};
+
+export const getUserByIdWithPassword = async (
+  id: string
+): Promise<{ id: string; password: string } | null> => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, password: true },
+  });
+  return user ?? null;
+};
+
+export const updateUserPasswordInDB = async (
+  id: string,
+  newHashedPassword: string
+): Promise<void> => {
+  await prisma.user.update({
+    where: { id },
+    data: { password: newHashedPassword },
+  });
 };
 
 export const checkIfEmailExist = async (email: string): Promise<boolean> => {
@@ -90,7 +111,7 @@ export const addMenteeToDB = async (
   country: string,
   phone?: string,
   bio?: string
-) => {
+): Promise<string> => {
   const userAdded = await prisma.user.create({
     data: { username, email, password, roleId },
   });
@@ -103,6 +124,7 @@ export const addMenteeToDB = async (
       bio,
     },
   });
+  return userAdded.id;
 };
 
 export const getAdminsFromDB = async (): Promise<adminSafe[]> => {
@@ -223,4 +245,36 @@ export const getRoleFromDB = async (id: number): Promise<role | null> => {
     select: { id: true, title: true, createdAt: true },
   });
   return role ?? null;
+};
+
+export const getMenteeProfileFromDB = async (
+  userId: string
+): Promise<menteeProfile | null> => {
+  const menteeRecord = await prisma.user.findFirst({
+    where: { id: userId },
+    select: { id: true, username: true, email: true, createdAt: true },
+  });
+  const menteeProfileRecord = await prisma.profile.findFirst({
+    where: { userId },
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      country: true,
+      bio: true,
+      createdAt: true,
+    },
+  });
+  if (!menteeRecord || !menteeProfileRecord) return null;
+  else
+    return {
+      id: menteeRecord.id,
+      fullName: menteeProfileRecord.fullName,
+      username: menteeRecord.username,
+      email: menteeRecord.email,
+      phone: menteeProfileRecord.phone,
+      country: menteeProfileRecord.country,
+      bio: menteeProfileRecord.bio,
+      createdAt: menteeRecord.createdAt,
+    };
 };
