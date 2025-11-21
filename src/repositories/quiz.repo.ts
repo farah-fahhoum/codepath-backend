@@ -1,11 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import {
   quizQuestionForMentee,
   quizQuestionList,
   quizQuestionSafe,
 } from "../types/quiz.type";
-
-const prisma = new PrismaClient();
 
 export const getQuizQuestionsFromDB = async (): Promise<quizQuestionList[]> => {
   const questionsRecords = await prisma.quizQuestion.findMany({
