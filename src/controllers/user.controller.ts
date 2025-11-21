@@ -13,12 +13,16 @@ import {
   getAdminByIdFromDB,
   getAdminsFromDB,
   getMenteeByIdFromDB,
+  getMenteeProfileFromDB,
   getMenteesFromDB,
   getRoleFromDB,
   getRolesFromDB,
   getUserByEmailForAuth,
+  getUserByIdWithPassword,
   updateAdminInDB,
+  updateUserPasswordInDB,
 } from "../repositories/user.repo";
+import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 
 export const adminAndMenteeLogin = async (req: Request, res: Response) => {
   try {
@@ -88,7 +92,7 @@ export const menteeRegister = async (req: Request, res: Response) => {
     //Hash password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await addMenteeToDB(
+    const userId = await addMenteeToDB(
       email,
       fullName,
       username,
@@ -98,7 +102,9 @@ export const menteeRegister = async (req: Request, res: Response) => {
       phone,
       bio
     );
-    return res.status(201).json({ message: "Mentee added succesfully" });
+    return res
+      .status(201)
+      .json({ message: "Mentee added succesfully", newUserId: userId });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -273,6 +279,50 @@ export const getRole = async (req: Request, res: Response) => {
     const role = await getRoleFromDB(value.id);
     if (role) return res.status(200).json(role);
     else return res.status(404).json({ message: "Invalid role id" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const getMenteeProfile = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    const mentee = await getMenteeProfileFromDB(userId);
+    const externalAccountIntegration =
+      await getExternalAccountIntegrationFromDB(userId);
+    if (!mentee) return res.status(404).json({ message: "Invalid mentee id" });
+    else return res.status(200).json({ mentee, externalAccountIntegration });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const updateMenteePassword = async (req: Request, res: Response) => {
+  try {
+    const inputSchema = Joi.object({
+      currentPassword: Joi.string().required(),
+      newPassword: Joi.string().min(8).required(),
+      confirmNewPassword: Joi.string().valid(Joi.ref("newPassword")).required(),
+    });
+    const { value, error } = inputSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const user = await getUserByIdWithPassword(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const matches = await bcrypt.compare(value.currentPassword, user.password);
+    if (!matches)
+      return res.status(401).json({ message: "Incorrect current password" });
+
+    const hashed = await bcrypt.hash(value.newPassword, 10);
+    await updateUserPasswordInDB(userId, hashed);
+    return res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }

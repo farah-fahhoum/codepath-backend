@@ -32,6 +32,17 @@ export interface role {
   createdAt: Date;
 }
 
+export interface menteeProfile {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phone: string;
+  country: string;
+  bio: string;
+  createdAt: Date;
+}
+
 export type authResponse =
   | "Username not found"
   | "Incorrect password"
