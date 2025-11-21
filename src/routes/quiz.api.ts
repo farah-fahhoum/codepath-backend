@@ -9,7 +9,7 @@ import {
 } from "../controllers/quiz.controller";
 import { authorize } from "../middlewares/authorization";
 
-export const router = express.Router();
+const router = express.Router();
 
 //Quiz Questions Management Routes - Dashboard
 router.get("/questions", authorize(["Admin"], false), getQuizQuestions);
@@ -32,3 +32,5 @@ router.delete(
 
 //Quiz Routes - Mentee
 router.get("/", authorize(["Mentee"], false), getQuiz);
+
+export { router };
