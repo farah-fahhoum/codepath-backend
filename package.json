@@ -2,10 +2,11 @@
   "name": "codepath-backend",
   "description": "CodePath - AI powered competitive programming platform",
   "main": "app.ts",
+  "type": "module",
   "scripts": {
     "start:js": "node dist/app.js",
-    "start:ts": "ts-node src/app.ts",
-    "dev": "nodemon src/app.ts",
+    "start:ts": "tsx src/app.ts",
+    "dev": "tsx watch src/app.ts",
     "build": "tsc",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
@@ -19,9 +20,12 @@
     "db:push": "prisma db push",
     "setup:dev": "npm run docker:up && npm run db:generate && npm run db:migrate"
   },
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.23.0",
   "dependencies": {
-    "@prisma/client": "^6.19.0",
+    "@prisma/client": "^7.0.0",
+    "@prisma/adapter-pg": "^7.0.0",
+    "pg": "^8.11.3",
+    "axios": "^1.7.2",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -35,6 +39,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@prisma/config": "^7.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
@@ -42,7 +47,8 @@
     "@types/nodemailer": "^7.0.3",
     "@types/passport": "^1.0.17",
     "nodemon": "^3.1.10",
-    "prisma": "^6.19.0",
+    "tsx": "^4.19.2",
+    "prisma": "^7.0.0",
     "ts-node": "^10.9.2"
   }
 }
