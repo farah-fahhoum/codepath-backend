@@ -1,11 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import * as nodemailer from "nodemailer";
 import {
   contactInfoType,
   contactInquiryDetails,
   contactInquirySafe,
 } from "../types/contact.type";
-const prisma = new PrismaClient();
 
 export const getContactInfoFromDB = async (
   id: number
