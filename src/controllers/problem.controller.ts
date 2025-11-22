@@ -28,7 +28,7 @@ export const getProblems = async (req: Request, res: Response) => {
         status: cfProblems.status,
       });
     }
-
+    //Needs to add if in user's favourite field
     const allProblems = (cfProblems?.result?.problems ?? []).map((p: any) => ({
       title: p.name,
       tags: p.tags ?? [],
@@ -73,6 +73,7 @@ export const getProblem = async (req: Request, res: Response) => {
       `https://codeforces.com/problemset/problem/${value.contestId}/${value.index}`,
       { timeout: 10000 }
     );
+    //Not working yet. Couldn't figure out how to extract problem's data from webpage
     console.log(webPageResp);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
