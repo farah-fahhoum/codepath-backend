@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import Joi from "joi";
 import axios from "axios";
+import fs from "fs";
 import {
   addProblemToFavouriteDB,
   checkFavouriteBelongsToUser,
   checkFavouriteExistForUser,
   deleteProblemFromFavouriteDB,
+  getProblemFromCodeforces,
   getUserFavouriteProblemsFromDB,
 } from "../repositories/problem.repo";
 export const getProblems = async (req: Request, res: Response) => {
@@ -69,12 +71,16 @@ export const getProblem = async (req: Request, res: Response) => {
     const { value, error } = paramsSchema.validate(req.params);
     if (error) return res.status(400).json({ message: error.message });
 
-    const webPageResp = await axios.get(
-      `https://codeforces.com/problemset/problem/${value.contestId}/${value.index}`,
-      { timeout: 10000 }
-    );
-    //Not working yet. Couldn't figure out how to extract problem's data from webpage
-    console.log(webPageResp);
+    const envExec = process.env.PUPPETEER_EXECUTABLE_PATH;
+    const macChrome =
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    const execPath =
+      envExec ?? (fs.existsSync(macChrome) ? macChrome : undefined);
+
+    const data = await getProblemFromCodeforces(value.contestId, value.index, {
+      executablePath: execPath,
+    });
+    return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
