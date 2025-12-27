@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "es2023" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "target": "es6" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
 
     /* Modules */
-    "module": "esnext" /* Specify what module code is generated. */,
+    "module": "commonjs" /* Specify what module code is generated. */,
     "rootDir": "." /* Set project rootDir to include config and sources. */,
     "moduleResolution": "Node" /* Specify how TypeScript looks up a file from a given module specifier. */,
     "resolveJsonModule": true /* Enable importing .json files. */,
@@ -27,13 +27,7 @@
     /* Completeness */
     "skipLibCheck": false /* Skip type checking all .d.ts files. */,
     "noUnusedLocals": true /* Enable error reporting when a local variable isn't read. */
-  }
-  ,
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "generated/**",
-    "prisma.config.ts"
-  ]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["generated/**", "prisma.config.ts"]
 }
