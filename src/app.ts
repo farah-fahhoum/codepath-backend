@@ -8,6 +8,11 @@ import { router as userRoutes } from "./routes/user.api";
 import { router as contactRoutes } from "./routes/contact.api";
 import { router as quizRoutes } from "./routes/quiz.api";
 import { router as problemRoutes } from "./routes/problem.api";
+import { router as chatbotRouter } from "./routes/chatbot.api";
+import { router as statisticsRouter } from "./routes/statistics.api";
+import { router as roadmapRoutes } from "./routes/roadmap.routes";
+import { router as skillLevelRoutes } from "./routes/skillLevel.api";
+import { router as topicRoutes } from "./routes/topic.api";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -16,7 +21,7 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(
   morgan("common", {
     stream: fs.createWriteStream("./access.log", { flags: "a" }),
-  })
+  }),
 );
 
 app.use(cors({ origin: ["http://localhost:3000"] }));
@@ -26,6 +31,11 @@ app.use("/users", userRoutes);
 app.use("/contact", contactRoutes);
 app.use("/quiz", quizRoutes);
 app.use("/problems", problemRoutes);
+app.use("/chatbot", chatbotRouter);
+app.use("/statistics", statisticsRouter);
+app.use("/roadmaps", roadmapRoutes);
+app.use("/skill-levels", skillLevelRoutes);
+app.use("/topics", topicRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
