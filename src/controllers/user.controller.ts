@@ -23,6 +23,10 @@ import {
   updateUserPasswordInDB,
 } from "../repositories/user.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
+import {
+  getMenteeCodePathLevel,
+  getMenteeProblemsSolvedCount,
+} from "../repositories/statistics.repo";
 
 export const adminAndMenteeLogin = async (req: Request, res: Response) => {
   try {
@@ -45,7 +49,7 @@ export const adminAndMenteeLogin = async (req: Request, res: Response) => {
     const accessToken = jwt.sign(
       { id: user.id },
       process.env.JWT_SECRET as string,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     return res.status(200).json({
@@ -100,7 +104,7 @@ export const menteeRegister = async (req: Request, res: Response) => {
       roleId,
       country,
       phone,
-      bio
+      bio,
     );
     return res
       .status(201)
@@ -213,7 +217,7 @@ export const updateAdmin = async (req: Request, res: Response) => {
     }).min(1);
 
     const { value: params, error: paramError } = paramSchema.validate(
-      req.params
+      req.params,
     );
     if (paramError)
       return res.status(400).json({ message: paramError.message });
@@ -292,8 +296,15 @@ export const getMenteeProfile = async (req: Request, res: Response) => {
     const mentee = await getMenteeProfileFromDB(userId);
     const externalAccountIntegration =
       await getExternalAccountIntegrationFromDB(userId);
+    const problemsSolved = await getMenteeProblemsSolvedCount(userId);
+    const quizResult = await getMenteeCodePathLevel(userId);
     if (!mentee) return res.status(404).json({ message: "Invalid mentee id" });
-    else return res.status(200).json({ mentee, externalAccountIntegration });
+    else
+      return res.status(200).json({
+        mentee,
+        externalAccountIntegration,
+        statistics: { problemsSolved, quizResult },
+      });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }

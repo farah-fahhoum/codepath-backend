@@ -11,7 +11,7 @@ import {
 // Shared Prisma client
 
 export const checkUserRoleForAuth = async (
-  id: string
+  id: string,
 ): Promise<userRoleForAuthType | null> => {
   const user = await prisma.user.findUnique({
     where: { id },
@@ -25,7 +25,7 @@ export const checkUserRoleForAuth = async (
 };
 
 export const getUserByEmailForAuth = async (
-  email: string
+  email: string,
 ): Promise<{
   id: string;
   email: string;
@@ -40,7 +40,7 @@ export const getUserByEmailForAuth = async (
 };
 
 export const getUserByIdWithPassword = async (
-  id: string
+  id: string,
 ): Promise<{ id: string; password: string } | null> => {
   const user = await prisma.user.findUnique({
     where: { id },
@@ -51,7 +51,7 @@ export const getUserByIdWithPassword = async (
 
 export const updateUserPasswordInDB = async (
   id: string,
-  newHashedPassword: string
+  newHashedPassword: string,
 ): Promise<void> => {
   await prisma.user.update({
     where: { id },
@@ -66,7 +66,7 @@ export const checkIfEmailExist = async (email: string): Promise<boolean> => {
 };
 
 export const checkIfUsernameExist = async (
-  username: string
+  username: string,
 ): Promise<boolean> => {
   const recordExist = await prisma.user.count({ where: { username } });
   if (recordExist > 0) return true;
@@ -74,7 +74,7 @@ export const checkIfUsernameExist = async (
 };
 
 export const checkIfAdminRoleIdValid = async (
-  roleId: number
+  roleId: number,
 ): Promise<boolean> => {
   const recordExist = await prisma.role.count({
     where: { id: roleId, title: "Admin" },
@@ -84,7 +84,7 @@ export const checkIfAdminRoleIdValid = async (
 };
 
 export const checkIfMenteeRoleIdValid = async (
-  roleId: number
+  roleId: number,
 ): Promise<boolean> => {
   const recordExist = await prisma.role.count({
     where: { id: roleId, title: "Mentee" },
@@ -97,7 +97,7 @@ export const addAdminToDB = async (
   email: string,
   username: string,
   password: string,
-  roleId: number
+  roleId: number,
 ) => {
   await prisma.user.create({ data: { email, username, password, roleId } });
 };
@@ -110,7 +110,7 @@ export const addMenteeToDB = async (
   roleId: number,
   country: string,
   phone?: string,
-  bio?: string
+  bio?: string,
 ): Promise<string> => {
   const userAdded = await prisma.user.create({
     data: { username, email, password, roleId },
@@ -140,7 +140,7 @@ export const getAdminsFromDB = async (): Promise<adminSafe[]> => {
 };
 
 export const getAdminByIdFromDB = async (
-  id: string
+  id: string,
 ): Promise<adminSafe | null> => {
   const adminRecord = await prisma.user.findFirst({
     where: { id },
@@ -158,7 +158,7 @@ export const deleteAdminFromDB = async (id: string): Promise<number> => {
 
 export const updateAdminInDB = async (
   id: string,
-  data: { username?: string; email?: string; password?: string }
+  data: { username?: string; email?: string; password?: string },
 ): Promise<adminSafe | null> => {
   const updated = await prisma.user.update({
     where: { id },
@@ -171,7 +171,7 @@ export const updateAdminInDB = async (
 export const getMenteesFromDB = async (
   fullName?: string,
   email?: string,
-  level?: string
+  level?: string,
 ): Promise<menteeSafe[]> => {
   const menteeRoleId = await prisma.role.findFirst({
     where: { title: "Mentee" },
@@ -192,12 +192,32 @@ export const getMenteesFromDB = async (
     select: { id: true, username: true, email: true, createdAt: true },
   });
 
-  //Get mentees levels
-  return menteeRecords;
+  // Get mentees levels
+  const menteesWithLevels = await Promise.all(
+    menteeRecords.map(async (mentee) => {
+      // Get the latest skill assessment for this mentee
+      const latestAssessment = await prisma.userSkillAssessment.findFirst({
+        where: { userId: mentee.id },
+        orderBy: { createdAt: "desc" },
+        include: {
+          skillLevel: {
+            select: { title: true },
+          },
+        },
+      });
+
+      return {
+        ...mentee,
+        level: latestAssessment?.skillLevel?.title || null,
+      };
+    }),
+  );
+
+  return menteesWithLevels;
 };
 
 export const getMenteeByIdFromDB = async (
-  id: string
+  id: string,
 ): Promise<menteeDetails | null> => {
   const menteeRecord = await prisma.user.findFirst({
     where: { id },
@@ -216,7 +236,16 @@ export const getMenteeByIdFromDB = async (
     },
   });
 
-  //Get mentee level & CF handle
+  // Get mentee level
+  const latestAssessment = await prisma.userSkillAssessment.findFirst({
+    where: { userId: id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      skillLevel: {
+        select: { title: true },
+      },
+    },
+  });
 
   let result: menteeDetails = {
     id: menteeRecord.id,
@@ -226,6 +255,7 @@ export const getMenteeByIdFromDB = async (
     phone: menteeProfileRecord.phone,
     country: menteeProfileRecord.country,
     bio: menteeProfileRecord.bio,
+    level: latestAssessment?.skillLevel?.title || null,
     createdAt: menteeRecord.createdAt,
   };
   if (!menteeRecord) return null;
@@ -248,7 +278,7 @@ export const getRoleFromDB = async (id: number): Promise<role | null> => {
 };
 
 export const getMenteeProfileFromDB = async (
-  userId: string
+  userId: string,
 ): Promise<menteeProfile | null> => {
   const menteeRecord = await prisma.user.findFirst({
     where: { id: userId },

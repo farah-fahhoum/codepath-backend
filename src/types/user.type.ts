@@ -12,6 +12,7 @@ export interface menteeSafe {
   id: string;
   username: string;
   email: string;
+  level?: string;
   createdAt: Date;
 }
 
@@ -23,6 +24,7 @@ export interface menteeDetails {
   phone: string;
   country: string;
   bio: string;
+  level?: string;
   createdAt: Date;
 }
 
