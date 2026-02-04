@@ -93,6 +93,14 @@ export const checkIfMenteeRoleIdValid = async (
   else return false;
 };
 
+export const getMenteeRoleId = async (): Promise<number> => {
+  const menteeRole = await prisma.role.findFirst({
+    where: { title: "Mentee" },
+  });
+  if (!menteeRole) throw new Error("Mentee role not found");
+  return menteeRole.id;
+};
+
 export const addAdminToDB = async (
   email: string,
   username: string,

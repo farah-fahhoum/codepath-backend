@@ -7,7 +7,6 @@ import {
   addMenteeToDB,
   checkIfAdminRoleIdValid,
   checkIfEmailExist,
-  checkIfMenteeRoleIdValid,
   checkIfUsernameExist,
   deleteAdminFromDB,
   getAdminByIdFromDB,
@@ -15,6 +14,7 @@ import {
   getMenteeByIdFromDB,
   getMenteeProfileFromDB,
   getMenteesFromDB,
+  getMenteeRoleId,
   getRoleFromDB,
   getRolesFromDB,
   getUserByEmailForAuth,
@@ -72,12 +72,10 @@ export const menteeRegister = async (req: Request, res: Response) => {
       phone: Joi.string().optional(),
       country: Joi.string().required(),
       bio: Joi.string().optional(),
-      roleId: Joi.number().min(1).required(),
     });
     const { value, error } = inputSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
-    const { fullName, username, email, password, phone, country, bio, roleId } =
-      value;
+    const { fullName, username, email, password, phone, country, bio } = value;
 
     //Check if email already in use before proceeding
     const emailExist = await checkIfEmailExist(email);
@@ -89,9 +87,8 @@ export const menteeRegister = async (req: Request, res: Response) => {
     if (usernameExist)
       return res.status(401).json({ message: "Username already in use" });
 
-    //Check if role id is valid
-    const validRole = await checkIfMenteeRoleIdValid(roleId);
-    if (!validRole) return res.status(401).json({ message: "Invalid role id" });
+    // Get Mentee role id from DB (no need for client to send it)
+    const roleId = await getMenteeRoleId();
 
     //Hash password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -106,9 +103,18 @@ export const menteeRegister = async (req: Request, res: Response) => {
       phone,
       bio,
     );
-    return res
-      .status(201)
-      .json({ message: "Mentee added succesfully", newUserId: userId });
+
+    const accessToken = jwt.sign(
+      { id: userId },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "7d" },
+    );
+
+    return res.status(201).json({
+      message: "Mentee added successfully",
+      accessToken,
+      user: { id: userId, email, role: "Mentee" },
+    });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
