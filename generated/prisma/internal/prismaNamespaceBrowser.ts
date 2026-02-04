@@ -58,7 +58,16 @@ export const ModelName = {
   ContactInfo: 'ContactInfo',
   ContactInquery: 'ContactInquery',
   QuizQuestion: 'QuizQuestion',
-  FavouriteProblem: 'FavouriteProblem'
+  FavouriteProblem: 'FavouriteProblem',
+  UserProblemAttempt: 'UserProblemAttempt',
+  ExternalSubmission: 'ExternalSubmission',
+  SkillLevel: 'SkillLevel',
+  UserSkillAssessment: 'UserSkillAssessment',
+  LearningPath: 'LearningPath',
+  PathModule: 'PathModule',
+  ModuleResource: 'ModuleResource',
+  ModuleProblem: 'ModuleProblem',
+  Topic: 'Topic'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -182,12 +191,146 @@ export const FavouriteProblemScalarFieldEnum = {
 export type FavouriteProblemScalarFieldEnum = (typeof FavouriteProblemScalarFieldEnum)[keyof typeof FavouriteProblemScalarFieldEnum]
 
 
+export const UserProblemAttemptScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  externalProblemId: 'externalProblemId',
+  platform: 'platform',
+  solved: 'solved',
+  attemptCount: 'attemptCount',
+  bestExecutionTime: 'bestExecutionTime',
+  lastAttempt: 'lastAttempt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserProblemAttemptScalarFieldEnum = (typeof UserProblemAttemptScalarFieldEnum)[keyof typeof UserProblemAttemptScalarFieldEnum]
+
+
+export const ExternalSubmissionScalarFieldEnum = {
+  id: 'id',
+  externalAccountId: 'externalAccountId',
+  externalSubmissionId: 'externalSubmissionId',
+  problemId: 'problemId',
+  submissionTime: 'submissionTime',
+  verdict: 'verdict',
+  executionTime: 'executionTime',
+  memoryUsed: 'memoryUsed',
+  programmingLanguage: 'programmingLanguage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExternalSubmissionScalarFieldEnum = (typeof ExternalSubmissionScalarFieldEnum)[keyof typeof ExternalSubmissionScalarFieldEnum]
+
+
+export const SkillLevelScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  targetRatingRange: 'targetRatingRange',
+  expectedKnowledge: 'expectedKnowledge',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SkillLevelScalarFieldEnum = (typeof SkillLevelScalarFieldEnum)[keyof typeof SkillLevelScalarFieldEnum]
+
+
+export const UserSkillAssessmentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  assessmentType: 'assessmentType',
+  score: 'score',
+  skillLevelId: 'skillLevelId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserSkillAssessmentScalarFieldEnum = (typeof UserSkillAssessmentScalarFieldEnum)[keyof typeof UserSkillAssessmentScalarFieldEnum]
+
+
+export const LearningPathScalarFieldEnum = {
+  id: 'id',
+  targetSkillLevelId: 'targetSkillLevelId',
+  title: 'title',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LearningPathScalarFieldEnum = (typeof LearningPathScalarFieldEnum)[keyof typeof LearningPathScalarFieldEnum]
+
+
+export const PathModuleScalarFieldEnum = {
+  id: 'id',
+  learningPathId: 'learningPathId',
+  topicId: 'topicId',
+  moduleOrder: 'moduleOrder',
+  title: 'title',
+  description: 'description',
+  estimatedHours: 'estimatedHours',
+  learningObjectives: 'learningObjectives',
+  successCriteria: 'successCriteria',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PathModuleScalarFieldEnum = (typeof PathModuleScalarFieldEnum)[keyof typeof PathModuleScalarFieldEnum]
+
+
+export const ModuleResourceScalarFieldEnum = {
+  id: 'id',
+  pathModuleId: 'pathModuleId',
+  resourceType: 'resourceType',
+  title: 'title',
+  description: 'description',
+  url: 'url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ModuleResourceScalarFieldEnum = (typeof ModuleResourceScalarFieldEnum)[keyof typeof ModuleResourceScalarFieldEnum]
+
+
+export const ModuleProblemScalarFieldEnum = {
+  id: 'id',
+  pathModuleId: 'pathModuleId',
+  externalProblemId: 'externalProblemId',
+  platform: 'platform',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ModuleProblemScalarFieldEnum = (typeof ModuleProblemScalarFieldEnum)[keyof typeof ModuleProblemScalarFieldEnum]
+
+
+export const TopicScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  tags: 'tags',
+  rating: 'rating',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TopicScalarFieldEnum = (typeof TopicScalarFieldEnum)[keyof typeof TopicScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull'
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -204,4 +347,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull',
+  AnyNull: 'AnyNull'
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

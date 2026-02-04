@@ -235,6 +235,8 @@ export type UserWhereInput = {
   role?: Prisma.XOR<Prisma.RoleScalarRelationFilter, Prisma.roleWhereInput>
   profile?: Prisma.XOR<Prisma.ProfileNullableScalarRelationFilter, Prisma.ProfileWhereInput> | null
   favouriteProblems?: Prisma.FavouriteProblemListRelationFilter
+  userProblemAttempts?: Prisma.UserProblemAttemptListRelationFilter
+  userSkillAssessments?: Prisma.UserSkillAssessmentListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -248,6 +250,8 @@ export type UserOrderByWithRelationInput = {
   role?: Prisma.roleOrderByWithRelationInput
   profile?: Prisma.ProfileOrderByWithRelationInput
   favouriteProblems?: Prisma.FavouriteProblemOrderByRelationAggregateInput
+  userProblemAttempts?: Prisma.UserProblemAttemptOrderByRelationAggregateInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -264,6 +268,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   role?: Prisma.XOR<Prisma.RoleScalarRelationFilter, Prisma.roleWhereInput>
   profile?: Prisma.XOR<Prisma.ProfileNullableScalarRelationFilter, Prisma.ProfileWhereInput> | null
   favouriteProblems?: Prisma.FavouriteProblemListRelationFilter
+  userProblemAttempts?: Prisma.UserProblemAttemptListRelationFilter
+  userSkillAssessments?: Prisma.UserSkillAssessmentListRelationFilter
 }, "id" | "username" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -304,6 +310,8 @@ export type UserCreateInput = {
   role: Prisma.roleCreateNestedOneWithoutUsersInput
   profile?: Prisma.ProfileCreateNestedOneWithoutUserInput
   favouriteProblems?: Prisma.FavouriteProblemCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -316,6 +324,8 @@ export type UserUncheckedCreateInput = {
   updatedAt?: Date | string
   profile?: Prisma.ProfileUncheckedCreateNestedOneWithoutUserInput
   favouriteProblems?: Prisma.FavouriteProblemUncheckedCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -328,6 +338,8 @@ export type UserUpdateInput = {
   role?: Prisma.roleUpdateOneRequiredWithoutUsersNestedInput
   profile?: Prisma.ProfileUpdateOneWithoutUserNestedInput
   favouriteProblems?: Prisma.FavouriteProblemUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -340,6 +352,8 @@ export type UserUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.ProfileUncheckedUpdateOneWithoutUserNestedInput
   favouriteProblems?: Prisma.FavouriteProblemUncheckedUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -494,6 +508,34 @@ export type UserUpdateOneRequiredWithoutFavouriteProblemsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFavouriteProblemsInput, Prisma.UserUpdateWithoutFavouriteProblemsInput>, Prisma.UserUncheckedUpdateWithoutFavouriteProblemsInput>
 }
 
+export type UserCreateNestedOneWithoutUserProblemAttemptsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedCreateWithoutUserProblemAttemptsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUserProblemAttemptsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutUserProblemAttemptsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedCreateWithoutUserProblemAttemptsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUserProblemAttemptsInput
+  upsert?: Prisma.UserUpsertWithoutUserProblemAttemptsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUserProblemAttemptsInput, Prisma.UserUpdateWithoutUserProblemAttemptsInput>, Prisma.UserUncheckedUpdateWithoutUserProblemAttemptsInput>
+}
+
+export type UserCreateNestedOneWithoutUserSkillAssessmentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedCreateWithoutUserSkillAssessmentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUserSkillAssessmentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutUserSkillAssessmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedCreateWithoutUserSkillAssessmentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutUserSkillAssessmentsInput
+  upsert?: Prisma.UserUpsertWithoutUserSkillAssessmentsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutUserSkillAssessmentsInput, Prisma.UserUpdateWithoutUserSkillAssessmentsInput>, Prisma.UserUncheckedUpdateWithoutUserSkillAssessmentsInput>
+}
+
 export type UserCreateWithoutRoleInput = {
   id?: string
   username: string
@@ -503,6 +545,8 @@ export type UserCreateWithoutRoleInput = {
   updatedAt?: Date | string
   profile?: Prisma.ProfileCreateNestedOneWithoutUserInput
   favouriteProblems?: Prisma.FavouriteProblemCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutRoleInput = {
@@ -514,6 +558,8 @@ export type UserUncheckedCreateWithoutRoleInput = {
   updatedAt?: Date | string
   profile?: Prisma.ProfileUncheckedCreateNestedOneWithoutUserInput
   favouriteProblems?: Prisma.FavouriteProblemUncheckedCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutRoleInput = {
@@ -564,6 +610,8 @@ export type UserCreateWithoutProfileInput = {
   updatedAt?: Date | string
   role: Prisma.roleCreateNestedOneWithoutUsersInput
   favouriteProblems?: Prisma.FavouriteProblemCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -575,6 +623,8 @@ export type UserUncheckedCreateWithoutProfileInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   favouriteProblems?: Prisma.FavouriteProblemUncheckedCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -602,6 +652,8 @@ export type UserUpdateWithoutProfileInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   role?: Prisma.roleUpdateOneRequiredWithoutUsersNestedInput
   favouriteProblems?: Prisma.FavouriteProblemUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -613,6 +665,8 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   favouriteProblems?: Prisma.FavouriteProblemUncheckedUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutFavouriteProblemsInput = {
@@ -624,6 +678,8 @@ export type UserCreateWithoutFavouriteProblemsInput = {
   updatedAt?: Date | string
   role: Prisma.roleCreateNestedOneWithoutUsersInput
   profile?: Prisma.ProfileCreateNestedOneWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFavouriteProblemsInput = {
@@ -635,6 +691,8 @@ export type UserUncheckedCreateWithoutFavouriteProblemsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.ProfileUncheckedCreateNestedOneWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFavouriteProblemsInput = {
@@ -662,6 +720,8 @@ export type UserUpdateWithoutFavouriteProblemsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   role?: Prisma.roleUpdateOneRequiredWithoutUsersNestedInput
   profile?: Prisma.ProfileUpdateOneWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFavouriteProblemsInput = {
@@ -673,6 +733,144 @@ export type UserUncheckedUpdateWithoutFavouriteProblemsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.ProfileUncheckedUpdateOneWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutUserProblemAttemptsInput = {
+  id?: string
+  username: string
+  email: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role: Prisma.roleCreateNestedOneWithoutUsersInput
+  profile?: Prisma.ProfileCreateNestedOneWithoutUserInput
+  favouriteProblems?: Prisma.FavouriteProblemCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutUserProblemAttemptsInput = {
+  id?: string
+  username: string
+  email: string
+  password: string
+  roleId: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.ProfileUncheckedCreateNestedOneWithoutUserInput
+  favouriteProblems?: Prisma.FavouriteProblemUncheckedCreateNestedManyWithoutUserInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutUserProblemAttemptsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedCreateWithoutUserProblemAttemptsInput>
+}
+
+export type UserUpsertWithoutUserProblemAttemptsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedUpdateWithoutUserProblemAttemptsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedCreateWithoutUserProblemAttemptsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutUserProblemAttemptsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutUserProblemAttemptsInput, Prisma.UserUncheckedUpdateWithoutUserProblemAttemptsInput>
+}
+
+export type UserUpdateWithoutUserProblemAttemptsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.roleUpdateOneRequiredWithoutUsersNestedInput
+  profile?: Prisma.ProfileUpdateOneWithoutUserNestedInput
+  favouriteProblems?: Prisma.FavouriteProblemUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutUserProblemAttemptsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  roleId?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.ProfileUncheckedUpdateOneWithoutUserNestedInput
+  favouriteProblems?: Prisma.FavouriteProblemUncheckedUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutUserSkillAssessmentsInput = {
+  id?: string
+  username: string
+  email: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role: Prisma.roleCreateNestedOneWithoutUsersInput
+  profile?: Prisma.ProfileCreateNestedOneWithoutUserInput
+  favouriteProblems?: Prisma.FavouriteProblemCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutUserSkillAssessmentsInput = {
+  id?: string
+  username: string
+  email: string
+  password: string
+  roleId: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.ProfileUncheckedCreateNestedOneWithoutUserInput
+  favouriteProblems?: Prisma.FavouriteProblemUncheckedCreateNestedManyWithoutUserInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutUserSkillAssessmentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedCreateWithoutUserSkillAssessmentsInput>
+}
+
+export type UserUpsertWithoutUserSkillAssessmentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedUpdateWithoutUserSkillAssessmentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedCreateWithoutUserSkillAssessmentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutUserSkillAssessmentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutUserSkillAssessmentsInput, Prisma.UserUncheckedUpdateWithoutUserSkillAssessmentsInput>
+}
+
+export type UserUpdateWithoutUserSkillAssessmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.roleUpdateOneRequiredWithoutUsersNestedInput
+  profile?: Prisma.ProfileUpdateOneWithoutUserNestedInput
+  favouriteProblems?: Prisma.FavouriteProblemUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutUserSkillAssessmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  roleId?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.ProfileUncheckedUpdateOneWithoutUserNestedInput
+  favouriteProblems?: Prisma.FavouriteProblemUncheckedUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyRoleInput = {
@@ -693,6 +891,8 @@ export type UserUpdateWithoutRoleInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.ProfileUpdateOneWithoutUserNestedInput
   favouriteProblems?: Prisma.FavouriteProblemUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRoleInput = {
@@ -704,6 +904,8 @@ export type UserUncheckedUpdateWithoutRoleInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.ProfileUncheckedUpdateOneWithoutUserNestedInput
   favouriteProblems?: Prisma.FavouriteProblemUncheckedUpdateManyWithoutUserNestedInput
+  userProblemAttempts?: Prisma.UserProblemAttemptUncheckedUpdateManyWithoutUserNestedInput
+  userSkillAssessments?: Prisma.UserSkillAssessmentUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutRoleInput = {
@@ -722,10 +924,14 @@ export type UserUncheckedUpdateManyWithoutRoleInput = {
 
 export type UserCountOutputType = {
   favouriteProblems: number
+  userProblemAttempts: number
+  userSkillAssessments: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   favouriteProblems?: boolean | UserCountOutputTypeCountFavouriteProblemsArgs
+  userProblemAttempts?: boolean | UserCountOutputTypeCountUserProblemAttemptsArgs
+  userSkillAssessments?: boolean | UserCountOutputTypeCountUserSkillAssessmentsArgs
 }
 
 /**
@@ -745,6 +951,20 @@ export type UserCountOutputTypeCountFavouriteProblemsArgs<ExtArgs extends runtim
   where?: Prisma.FavouriteProblemWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountUserProblemAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserProblemAttemptWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountUserSkillAssessmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserSkillAssessmentWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -757,6 +977,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   role?: boolean | Prisma.roleDefaultArgs<ExtArgs>
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
   favouriteProblems?: boolean | Prisma.User$favouriteProblemsArgs<ExtArgs>
+  userProblemAttempts?: boolean | Prisma.User$userProblemAttemptsArgs<ExtArgs>
+  userSkillAssessments?: boolean | Prisma.User$userSkillAssessmentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -797,6 +1019,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   role?: boolean | Prisma.roleDefaultArgs<ExtArgs>
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
   favouriteProblems?: boolean | Prisma.User$favouriteProblemsArgs<ExtArgs>
+  userProblemAttempts?: boolean | Prisma.User$userProblemAttemptsArgs<ExtArgs>
+  userSkillAssessments?: boolean | Prisma.User$userSkillAssessmentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -812,6 +1036,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     role: Prisma.$rolePayload<ExtArgs>
     profile: Prisma.$ProfilePayload<ExtArgs> | null
     favouriteProblems: Prisma.$FavouriteProblemPayload<ExtArgs>[]
+    userProblemAttempts: Prisma.$UserProblemAttemptPayload<ExtArgs>[]
+    userSkillAssessments: Prisma.$UserSkillAssessmentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1218,6 +1444,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   role<T extends Prisma.roleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.roleDefaultArgs<ExtArgs>>): Prisma.Prisma__roleClient<runtime.Types.Result.GetResult<Prisma.$rolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   profile<T extends Prisma.User$profileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$profileArgs<ExtArgs>>): Prisma.Prisma__ProfileClient<runtime.Types.Result.GetResult<Prisma.$ProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   favouriteProblems<T extends Prisma.User$favouriteProblemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$favouriteProblemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FavouriteProblemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  userProblemAttempts<T extends Prisma.User$userProblemAttemptsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$userProblemAttemptsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserProblemAttemptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  userSkillAssessments<T extends Prisma.User$userSkillAssessmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$userSkillAssessmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSkillAssessmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1690,6 +1918,54 @@ export type User$favouriteProblemsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.FavouriteProblemScalarFieldEnum | Prisma.FavouriteProblemScalarFieldEnum[]
+}
+
+/**
+ * User.userProblemAttempts
+ */
+export type User$userProblemAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserProblemAttempt
+   */
+  select?: Prisma.UserProblemAttemptSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserProblemAttempt
+   */
+  omit?: Prisma.UserProblemAttemptOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserProblemAttemptInclude<ExtArgs> | null
+  where?: Prisma.UserProblemAttemptWhereInput
+  orderBy?: Prisma.UserProblemAttemptOrderByWithRelationInput | Prisma.UserProblemAttemptOrderByWithRelationInput[]
+  cursor?: Prisma.UserProblemAttemptWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserProblemAttemptScalarFieldEnum | Prisma.UserProblemAttemptScalarFieldEnum[]
+}
+
+/**
+ * User.userSkillAssessments
+ */
+export type User$userSkillAssessmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserSkillAssessment
+   */
+  select?: Prisma.UserSkillAssessmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserSkillAssessment
+   */
+  omit?: Prisma.UserSkillAssessmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserSkillAssessmentInclude<ExtArgs> | null
+  where?: Prisma.UserSkillAssessmentWhereInput
+  orderBy?: Prisma.UserSkillAssessmentOrderByWithRelationInput | Prisma.UserSkillAssessmentOrderByWithRelationInput[]
+  cursor?: Prisma.UserSkillAssessmentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserSkillAssessmentScalarFieldEnum | Prisma.UserSkillAssessmentScalarFieldEnum[]
 }
 
 /**

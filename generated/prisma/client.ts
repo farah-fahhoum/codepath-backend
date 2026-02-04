@@ -77,3 +77,48 @@ export type QuizQuestion = Prisma.QuizQuestionModel
  * 
  */
 export type FavouriteProblem = Prisma.FavouriteProblemModel
+/**
+ * Model UserProblemAttempt
+ * 
+ */
+export type UserProblemAttempt = Prisma.UserProblemAttemptModel
+/**
+ * Model ExternalSubmission
+ * 
+ */
+export type ExternalSubmission = Prisma.ExternalSubmissionModel
+/**
+ * Model SkillLevel
+ * 
+ */
+export type SkillLevel = Prisma.SkillLevelModel
+/**
+ * Model UserSkillAssessment
+ * 
+ */
+export type UserSkillAssessment = Prisma.UserSkillAssessmentModel
+/**
+ * Model LearningPath
+ * 
+ */
+export type LearningPath = Prisma.LearningPathModel
+/**
+ * Model PathModule
+ * 
+ */
+export type PathModule = Prisma.PathModuleModel
+/**
+ * Model ModuleResource
+ * 
+ */
+export type ModuleResource = Prisma.ModuleResourceModel
+/**
+ * Model ModuleProblem
+ * 
+ */
+export type ModuleProblem = Prisma.ModuleProblemModel
+/**
+ * Model Topic
+ * 
+ */
+export type Topic = Prisma.TopicModel
