@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   getMenteeAccuracy,
+  getMenteeAIInsights,
   getMenteeCodePathLevel,
   getMenteeCodePathRating,
   getMenteeCodePrint,
@@ -43,6 +44,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
     const problemsSolved = await getMenteeProblemsSolvedCount(userId);
     const accuracy = await getMenteeAccuracy(userId);
     const yourCodePrint = await getMenteeCodePrint(userId);
+    const insightsPanel = await getMenteeAIInsights(userId);
 
     return res.status(200).json({
       codePathRating: codePathRating,
@@ -50,6 +52,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
       problemsSolved: problemsSolved,
       accuracy: accuracy,
       yourCodePrint: yourCodePrint,
+      insightsPanel: insightsPanel,
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
