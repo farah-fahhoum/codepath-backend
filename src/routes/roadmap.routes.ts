@@ -14,6 +14,7 @@ import {
   deleteProblem,
   createRoadmap,
   updateRoadmap,
+  getMenteeTopicPerformanceOverview,
 } from "../controllers/roadmap.controller";
 import { authorize } from "../middlewares/authorization";
 
@@ -21,7 +22,7 @@ const router = express.Router();
 
 // Roadmap routes
 router.get("/", authorize(["Admin"], false), getRoadmaps);
-router.get("/:id", authorize(["Admin", "Mentee"], false), getRoadmap);
+router.get("/:id", authorize(["Admin", "Mentee"], false), getRoadmap); //Admin & Mentee View
 router.post("/create", authorize(["Admin"], false), createRoadmap);
 router.put("/update/:id", authorize(["Admin"], false), updateRoadmap);
 router.delete("/delete/:id", authorize(["Admin"], false), deleteRoadmap);
@@ -30,6 +31,12 @@ router.delete("/delete/:id", authorize(["Admin"], false), deleteRoadmap);
 router.post("/create/modules", authorize(["Admin"], false), createModule);
 router.put("/update/modules/:id", authorize(["Admin"], false), updateModule);
 router.delete("/delete/modules/:id", authorize(["Admin"], false), deleteModule);
+//Topics routes - AIx
+router.get(
+  "/modules/topic/mentee-performance-overview",
+  authorize(["Mentee"], false),
+  getMenteeTopicPerformanceOverview,
+);
 
 // Resource routes
 router.post("/create/resources", authorize(["Admin"], false), createResource);

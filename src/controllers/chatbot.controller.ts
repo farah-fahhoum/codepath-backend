@@ -12,7 +12,6 @@ export const askChatbot = async (req: Request, res: Response) => {
 
     const { question } = value;
 
-    // Make API call to FastAPI service
     const fastApiUrl = process.env.FASTAPI_BASE_URL + "/api/chat";
 
     try {
@@ -26,7 +25,7 @@ export const askChatbot = async (req: Request, res: Response) => {
             "Content-Type": "application/json",
           },
           timeout: 10000, // 10 second timeout
-        }
+        },
       );
 
       // Return the response from FastAPI
@@ -51,7 +50,6 @@ export const askChatbot = async (req: Request, res: Response) => {
         }
       }
 
-      // Generic error fallback
       return res.status(500).json({
         message: "Error communicating with chatbot service",
         error: axiosError.message,

@@ -49,3 +49,28 @@ export const getSkillLevelById = async (
     },
   });
 };
+
+export const getSkillLevelByTitle = async (
+  title: string,
+): Promise<{
+  id: number;
+  title: string;
+  description: string;
+  targetRatingRange: string;
+  expectedKnowledge: string;
+  createdAt: Date;
+  updatedAt: Date;
+} | null> => {
+  return prisma.skillLevel.findFirst({
+    where: { title },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      targetRatingRange: true,
+      expectedKnowledge: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+};

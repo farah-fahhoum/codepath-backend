@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import axios from "axios";
 import {
   getRoadmapsFromDB,
   getRoadmapByIdFromDB,
@@ -15,6 +16,7 @@ import {
   updateProblemInDB,
   deleteProblemFromDB,
 } from "../repositories/roadmap.repo";
+import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 
 export const getRoadmaps = async (req: Request, res: Response) => {
   try {
@@ -308,5 +310,102 @@ export const deleteProblem = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const getMenteeTopicPerformanceOverview = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { topic } = req.query;
+    if (!topic || typeof topic !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Topic query parameter is required" });
+    }
+
+    const externalAccount = await getExternalAccountIntegrationFromDB(userId);
+    if (!externalAccount || !externalAccount.handle) {
+      return res.status(404).json({
+        message:
+          "User handle not found. Please connect your coding platform account.",
+      });
+    }
+
+    const userHandle = externalAccount.handle;
+
+    // Call both FastAPI endpoints in parallel
+    const [performanceResponse, aiSummaryResponse] = await Promise.all([
+      // Topic performance endpoint
+      axios.get(
+        `${process.env.FASTAPI_BASE_URL}/topic/${topic}?user_handle=${userHandle}`,
+        {
+          headers: { accept: "application/json" },
+          timeout: 10000,
+        },
+      ),
+      // AI summary endpoint
+      axios.get(
+        `${process.env.FASTAPI_BASE_URL}/topic/${topic}/ai-summary?user_handle=${userHandle}`,
+        {
+          headers: { accept: "application/json" },
+          timeout: 15000,
+        },
+      ),
+    ]);
+
+    // Combine both responses
+    const combinedResponse = {
+      ...performanceResponse.data,
+      ai_insights: aiSummaryResponse.data.ai_insights,
+      performance_breakdown: aiSummaryResponse.data.performance,
+    };
+
+    return res.status(200).json(combinedResponse);
+  } catch (error) {
+    console.error("Error fetching topic performance data from FastAPI:", error);
+
+    // Try to get at least the basic performance data if AI summary fails
+    // try {
+    //   // @ts-expect-error userId is defined
+    //   const userId = req.user?.id as string;
+    //   const { topic } = req.query;
+    //   const externalAccount = await getExternalAccountIntegrationFromDB(userId);
+
+    //   if (externalAccount && externalAccount.handle) {
+    //     const performanceResponse = await axios.get(
+    //       `${process.env.FASTAPI_BASE_URL}/topic/${topic}?user_handle=${externalAccount.handle}`,
+    //       {
+    //         headers: { accept: "application/json" },
+    //         timeout: 10000,
+    //       },
+    //     );
+
+    //     return res.status(200).json({
+    //       ...performanceResponse.data,
+    //       ai_insights:
+    //         "AI insights are temporarily unavailable. Please try again later.",
+    //       performance_breakdown: {},
+    //     });
+    //   }
+    // } catch (fallbackError) {
+    //   return res.status(500).json({
+    //     message: "Failed to fetch topic performance data",
+    //     error: error.message,
+    //   });
+    // }
+
+    return res.status(500).json({
+      message: "Failed to fetch topic performance data",
+      error: error.message,
+    });
   }
 };

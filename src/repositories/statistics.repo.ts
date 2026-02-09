@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma";
 import fs from "fs";
 import path from "path";
+import axios from "axios";
+import { getExternalAccountIntegrationFromDB } from "./externalAccount.repo";
 
 export const getTotalMentees = async (): Promise<number> => {
   const menteeRoleId = await prisma.role.findFirst({
@@ -160,12 +162,39 @@ export const getMenteeCodePathRating = async (
 export const getMenteeCodePathLevel = async (
   userId: string,
 ): Promise<string> => {
-  const skillAssessment = await prisma.userSkillAssessment.findFirst({
-    where: { userId: userId },
-    select: { skillLevel: { select: { title: true } } },
-  });
+  // Get user handle from external account
+  const externalAccount = await getExternalAccountIntegrationFromDB(userId);
+  if (!externalAccount || !externalAccount.handle) {
+    return "Not Assessed";
+  }
 
-  return skillAssessment?.skillLevel?.title || "Not Assessed";
+  const userHandle = externalAccount.handle;
+
+  try {
+    // Call FastAPI endpoint to get user dashboard data
+    const response = await axios.get(
+      `${process.env.FASTAPI_BASE_URL}/dashboard/user/${userHandle}`,
+      {
+        headers: {
+          accept: "application/json",
+        },
+        timeout: 10000,
+      },
+    );
+
+    const userData = response.data;
+    return userData.tier || "Not Assessed";
+  } catch (error) {
+    console.error("Error fetching user tier from FastAPI:", error);
+
+    // Fallback to database if FastAPI fails
+    const skillAssessment = await prisma.userSkillAssessment.findFirst({
+      where: { userId: userId },
+      select: { skillLevel: { select: { title: true } } },
+    });
+
+    return skillAssessment?.skillLevel?.title || "Not Assessed";
+  }
 };
 
 export const getMenteeProblemsSolvedCount = async (
@@ -191,92 +220,80 @@ export const getMenteeAccuracy = async (userId: string): Promise<number> => {
 export const getMenteeCodePrint = async (
   userId: string,
 ): Promise<Array<{ topic: string; attempts: number }>> => {
-  // Get all problems attempted by the user
-  const userAttempts = await prisma.userProblemAttempt.findMany({
-    where: { userId },
-    select: { externalProblemId: true, platform: true },
-  });
-
-  if (userAttempts.length === 0) {
+  const externalAccount = await getExternalAccountIntegrationFromDB(userId);
+  if (!externalAccount || !externalAccount.handle) {
     return [];
   }
 
-  // Read the CSV file to get problem topics
-  const csvPath = path.join(__dirname, "../../problemset.csv");
-  const csvData = fs.readFileSync(csvPath, "utf8");
-  const lines = csvData.trim().split("\n").slice(1); // Skip header
+  const userHandle = externalAccount.handle;
 
-  const topicCounts: Record<string, number> = {};
+  try {
+    // Call FastAPI endpoint to get radar data
+    const response = await axios.get(
+      `${process.env.FASTAPI_BASE_URL}/dashboard/radar/${userHandle}`,
+      {
+        headers: {
+          accept: "application/json",
+        },
+        timeout: 10000,
+      },
+    );
 
-  // Create a set of problem identifiers for faster lookup
-  const userProblemIdentifiers = new Set(
-    userAttempts.map(
-      (attempt) => `${attempt.externalProblemId}_${attempt.platform}`,
-    ),
-  );
+    const radarData = response.data;
 
-  // Process each line to extract topics for user's attempted problems
-  for (const line of lines) {
-    const columns = line.split(",");
-    if (columns.length >= 3) {
-      const problemId = columns[0].trim();
-      const tagsString = columns[2].trim();
+    const topTopics = Object.entries(radarData.top_topics || {})
+      .map(([topic, attempts]) => ({
+        topic,
+        attempts: typeof attempts === "number" ? attempts : 0,
+      }))
+      .sort((a, b) => b.attempts - a.attempts)
+      .slice(0, 6);
 
-      // Check if this problem was attempted by the user
-      if (userProblemIdentifiers.has(problemId)) {
-        let cleanTagsString = tagsString;
+    return topTopics;
+  } catch (error) {
+    console.error("Error fetching radar data from FastAPI:", error);
+    return [];
+  }
+};
 
-        // Remove outer quotes if present
-        if (
-          (cleanTagsString.startsWith('"') && cleanTagsString.endsWith('"')) ||
-          (cleanTagsString.startsWith("'") && cleanTagsString.endsWith("'"))
-        ) {
-          cleanTagsString = cleanTagsString.slice(1, -1);
-        }
-
-        // Handle empty arrays
-        if (cleanTagsString === "[]") {
-          continue;
-        }
-
-        try {
-          // Convert Python-style array to JSON format
-          const jsonCompatible = cleanTagsString
-            .replace(/\'/g, '"')
-            .replace(/\[\s*\]/g, "[]");
-
-          const tags = JSON.parse(jsonCompatible);
-
-          if (Array.isArray(tags)) {
-            tags.forEach((tag) => {
-              if (tag && typeof tag === "string") {
-                topicCounts[tag] = (topicCounts[tag] || 0) + 1;
-              }
-            });
-          }
-        } catch (error) {
-          // If JSON parsing fails, try manual extraction
-          const manualTags = cleanTagsString
-            .replace(/\[|\]/g, "")
-            .split(",")
-            .map((tag) => tag.trim().replace(/^'|"|'$|"$/g, ""))
-            .filter((tag) => tag.length > 0);
-
-          manualTags.forEach((tag) => {
-            if (tag) {
-              topicCounts[tag] = (topicCounts[tag] || 0) + 1;
-            }
-          });
-        }
-      }
-    }
+export const getMenteeAIInsights = async (userId: string): Promise<string> => {
+  const externalAccount = await getExternalAccountIntegrationFromDB(userId);
+  if (!externalAccount || !externalAccount.handle) {
+    return "AI insights are not available yet. Please connect your coding platform account to get personalized insights and recommendations for your learning journey.";
   }
 
-  // Convert to array, sort by count descending, and get top 6
-  const topTopics = Object.entries(topicCounts)
-    .map(([topic, count]) => ({ topic, attempts: count }))
-    .sort((a, b) => b.attempts - a.attempts)
-    .slice(0, 6);
+  const userHandle = externalAccount.handle;
 
-  return topTopics;
+  // Make API call to FastAPI dashboard service
+  const fastApiUrl =
+    process.env.FASTAPI_BASE_URL + `/dashboard/ai/${userHandle}`;
+
+  try {
+    const response = await axios.get(fastApiUrl, {
+      headers: {
+        accept: "application/json",
+      },
+      timeout: 10000, // 10 second timeout
+    });
+
+    // Return the AI insight from the response
+    return response.data.ai_insight;
+  } catch (axiosError) {
+    if (axios.isAxiosError(axiosError)) {
+      if (axiosError.code === "ECONNREFUSED") {
+        throw new Error("AI insights service is currently unavailable");
+      } else if (axiosError.response) {
+        // Forward the error response from FastAPI
+        throw new Error(
+          `AI insights service error: ${axiosError.response.status} ${axiosError.response.statusText}`,
+        );
+      } else if (axiosError.request) {
+        throw new Error("AI insights service request timeout");
+      }
+    }
+
+    throw new Error(
+      `Error communicating with AI insights service: ${axiosError.message}`,
+    );
+  }
 };
