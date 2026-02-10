@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma";
 import puppeteer from "puppeteer";
 import { favouriteProblem } from "../types/problem.type";
 export const getUserFavouriteProblemsFromDB = async (
-  userId: string
+  userId: string,
 ): Promise<favouriteProblem[]> => {
   const list = await prisma.favouriteProblem.findMany({
     where: { userId },
@@ -19,7 +19,7 @@ export const getUserFavouriteProblemsFromDB = async (
 export const addProblemToFavouriteDB = async (
   userId: string,
   externalProblemId: string,
-  platform: string
+  platform: string,
 ) => {
   await prisma.favouriteProblem.create({
     data: {
@@ -31,7 +31,7 @@ export const addProblemToFavouriteDB = async (
 };
 
 export const deleteProblemFromFavouriteDB = async (
-  id: string
+  id: string,
 ): Promise<number> => {
   const recordsAffected = await prisma.favouriteProblem.delete({
     where: { id },
@@ -42,7 +42,7 @@ export const deleteProblemFromFavouriteDB = async (
 
 export const checkFavouriteBelongsToUser = async (
   userId: string,
-  id: string
+  id: string,
 ): Promise<boolean> => {
   const recordExist = await prisma.favouriteProblem.findFirst({
     where: { userId, id },
@@ -54,7 +54,7 @@ export const checkFavouriteBelongsToUser = async (
 export const checkFavouriteExistForUser = async (
   userId: string,
   externalProblemId: string,
-  platform: string
+  platform: string,
 ): Promise<boolean> => {
   const recordExist = await prisma.favouriteProblem.findFirst({
     where: {
@@ -78,7 +78,7 @@ export const getProblemFromCodeforces = async (
     waitUntil?: "load" | "domcontentloaded" | "networkidle0" | "networkidle2";
     timeout?: number;
     executablePath?: string;
-  }
+  },
 ) => {
   const {
     headless = true,
@@ -115,7 +115,7 @@ export const getProblemFromCodeforces = async (
       {
         waitUntil,
         timeout,
-      }
+      },
     );
 
     // Extract complete problem data using page.evaluate
@@ -172,22 +172,22 @@ export const getProblemFromCodeforces = async (
 
       // Problem content sections (text-only, no HTML tags)
       const descEl = problemStatement.querySelector(
-        ".problem-statement > div:nth-child(2)"
+        ".problem-statement > div:nth-child(2)",
       ) as HTMLElement | null;
       const description = (descEl?.innerText || "").trim();
 
       const inputSpecEl = problemStatement.querySelector(
-        ".input-specification"
+        ".input-specification",
       ) as HTMLElement | null;
       const inputSpecification = (inputSpecEl?.innerText || "").trim();
 
       const outputSpecEl = problemStatement.querySelector(
-        ".output-specification"
+        ".output-specification",
       ) as HTMLElement | null;
       const outputSpecification = (outputSpecEl?.innerText || "").trim();
 
       const noteEl = problemStatement.querySelector(
-        ".note"
+        ".note",
       ) as HTMLElement | null;
       const note = (noteEl?.innerText || "").trim();
 
@@ -195,10 +195,10 @@ export const getProblemFromCodeforces = async (
       const sampleTests: Array<{ input: string; output: string }> = [];
       document.querySelectorAll(".sample-test").forEach((testElement) => {
         const inputElement = testElement.querySelector(
-          ".input pre"
+          ".input pre",
         ) as HTMLElement | null;
         const outputElement = testElement.querySelector(
-          ".output pre"
+          ".output pre",
         ) as HTMLElement | null;
 
         if (inputElement && outputElement) {
@@ -272,7 +272,7 @@ export const getProblemFromCodeforces = async (
         raw: {
           descriptionHtml: (
             problemStatement.querySelector(
-              ".problem-statement > div:nth-child(2)"
+              ".problem-statement > div:nth-child(2)",
             )?.innerHTML || ""
           ).trim(),
           inputSpecHtml: (
@@ -307,4 +307,71 @@ export const getProblemFromCodeforces = async (
   } finally {
     await browser.close();
   }
+};
+
+export const getExternalAccountByUserIdAndPlatform = async (
+  userId: string,
+  platform: string,
+) => {
+  return await prisma.externalAccount.findFirst({
+    where: { userId, platform },
+  });
+};
+
+export const createExternalSubmission = async (
+  externalSubmissionId: string,
+  externalAccountId: string,
+  problemId: string,
+  submissionTime: number,
+  verdict: string,
+  executionTime: number,
+  memoryUsed: number,
+  programmingLanguage: string,
+) => {
+  return await prisma.externalSubmission.create({
+    data: {
+      externalSubmissionId,
+      externalAccountId,
+      problemId,
+      submissionTime,
+      verdict,
+      executionTime,
+      memoryUsed,
+      programmingLanguage,
+    },
+  });
+};
+
+export const upsertUserProblemAttempt = async (
+  userId: string,
+  externalProblemId: string,
+  platform: string,
+  solved: boolean,
+  attemptCount: number,
+  bestExecutionTime: number | null,
+) => {
+  return await prisma.userProblemAttempt.upsert({
+    where: {
+      userId_externalProblemId_platform: {
+        userId,
+        externalProblemId,
+        platform,
+      },
+    },
+    update: {
+      attemptCount,
+      solved,
+      bestExecutionTime,
+      lastAttempt: new Date(),
+    },
+    create: {
+      userId,
+      externalProblemId,
+      platform,
+      attemptCount,
+      solved,
+      bestExecutionTime,
+      lastAttempt: new Date(),
+    },
+  });
 };

@@ -2,13 +2,17 @@ import { Request, Response } from "express";
 import Joi from "joi";
 import axios from "axios";
 import fs from "fs";
+import { prisma } from "../lib/prisma";
 import {
   addProblemToFavouriteDB,
   checkFavouriteBelongsToUser,
   checkFavouriteExistForUser,
+  createExternalSubmission,
   deleteProblemFromFavouriteDB,
+  getExternalAccountByUserIdAndPlatform,
   getProblemFromCodeforces,
   getUserFavouriteProblemsFromDB,
+  upsertUserProblemAttempt,
 } from "../repositories/problem.repo";
 export const getProblems = async (req: Request, res: Response) => {
   try {
@@ -21,7 +25,7 @@ export const getProblems = async (req: Request, res: Response) => {
 
     const resp = await axios.get(
       "https://codeforces.com/api/problemset.problems",
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
     const cfProblems = resp.data;
     if (!cfProblems || cfProblems.status !== "OK") {
@@ -86,6 +90,91 @@ export const getProblem = async (req: Request, res: Response) => {
   }
 };
 
+export const submitProblem = async (req: Request, res: Response) => {
+  try {
+    const submissionSchema = Joi.object({
+      externalSubmissionId: Joi.string().required(),
+      problemId: Joi.string().required(),
+      platform: Joi.string().required(),
+      submissionTime: Joi.number().required(),
+      verdict: Joi.string().required(),
+      executionTime: Joi.number().optional(),
+      memoryUsed: Joi.number().optional(),
+      programmingLanguage: Joi.string().required(),
+    });
+
+    const { value, error } = submissionSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    // Get external account for the user
+    const externalAccount = await getExternalAccountByUserIdAndPlatform(
+      userId,
+      value.platform,
+    );
+    if (!externalAccount) {
+      return res.status(404).json({
+        message: `No external account found for platform: ${value.platform}`,
+      });
+    }
+
+    // Determine if problem was solved
+    const solved = ["AC", "Accepted", "OK"].includes(value.verdict);
+
+    // Get current attempt info
+    const currentAttempt = await prisma.userProblemAttempt.findUnique({
+      where: {
+        userId_externalProblemId_platform: {
+          userId,
+          externalProblemId: value.problemId,
+          platform: value.platform,
+        },
+      },
+    });
+
+    const attemptCount = (currentAttempt?.attemptCount || 0) + 1;
+    const bestExecutionTime = solved
+      ? Math.min(
+          currentAttempt?.bestExecutionTime || Infinity,
+          value.executionTime || Infinity,
+        )
+      : currentAttempt?.bestExecutionTime || null;
+
+    // Create external submission
+    await createExternalSubmission(
+      value.externalSubmissionId,
+      externalAccount.id.toString(),
+      value.problemId,
+      value.submissionTime,
+      value.verdict,
+      value.executionTime || 0,
+      value.memoryUsed || 0,
+      value.programmingLanguage,
+    );
+
+    // Update user problem attempt
+    await upsertUserProblemAttempt(
+      userId,
+      value.problemId,
+      value.platform,
+      solved,
+      attemptCount,
+      bestExecutionTime,
+    );
+
+    return res.status(201).json({
+      message: "Problem submission recorded successfully",
+      solved,
+      attemptCount,
+    });
+  } catch (error) {
+    console.error("Error in submitProblem:", error);
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
 //Get user's favourite problems list
 export const getFavouriteProblems = async (req: Request, res: Response) => {
   try {
@@ -116,7 +205,7 @@ export const addProblemToFavourite = async (req: Request, res: Response) => {
     const recordCheck = await checkFavouriteExistForUser(
       userId,
       externalProblemId,
-      platform
+      platform,
     );
     if (recordCheck) {
       return res
@@ -135,7 +224,7 @@ export const addProblemToFavourite = async (req: Request, res: Response) => {
 
 export const removeProblemFromFavourite = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const paramsSchema = Joi.object({
