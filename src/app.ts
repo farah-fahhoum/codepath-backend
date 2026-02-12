@@ -13,6 +13,7 @@ import { router as statisticsRouter } from "./routes/statistics.api";
 import { router as roadmapRoutes } from "./routes/roadmap.routes";
 import { router as skillLevelRoutes } from "./routes/skillLevel.api";
 import { router as topicRoutes } from "./routes/topic.api";
+import { router as externalAccountRoutes } from "./routes/externalAccount.api";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -36,6 +37,7 @@ app.use("/statistics", statisticsRouter);
 app.use("/roadmaps", roadmapRoutes);
 app.use("/skill-levels", skillLevelRoutes);
 app.use("/topics", topicRoutes);
+app.use("/external-accounts", externalAccountRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);
