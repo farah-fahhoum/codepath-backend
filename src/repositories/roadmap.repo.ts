@@ -8,6 +8,260 @@ import {
   Topic,
 } from "../types/roadmap.type";
 
+export const getActiveUserLearningProgressFromDB = async (userId: string) => {
+  return prisma.userLearningProgress.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+    include: {
+      learningPath: {
+        include: {
+          skillLevel: {
+            select: { title: true },
+          },
+          pathModules: true,
+        },
+      },
+      currentModule: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+export const getUserRoadmapSummaryFromDB = async (userId: string) => {
+  const progress = await prisma.userLearningProgress.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+    include: {
+      learningPath: {
+        include: {
+          pathModules: {
+            include: {
+              moduleProblems: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!progress) {
+    return null;
+  }
+
+  const totalModules = progress.learningPath.pathModules.length;
+  const modulesCompleted = Math.round(
+    (progress.progressPercentage / 100) * totalModules,
+  );
+
+  return {
+    learningPathId: progress.learningPathId,
+    learningPathTitle: progress.learningPath.title,
+    progressPercentage: progress.progressPercentage,
+    modulesCompleted,
+    totalModules,
+  };
+};
+
+export const activateUserRoadmapForSkillLevelInDB = async (
+  userId: string,
+  skillLevelId: number,
+) => {
+  const learningPath = await prisma.learningPath.findFirst({
+    where: {
+      targetSkillLevelId: skillLevelId,
+    },
+    include: {
+      pathModules: {
+        orderBy: {
+          moduleOrder: "asc",
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  if (!learningPath) {
+    return null;
+  }
+
+  const existingActive = await prisma.userLearningProgress.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+  });
+
+  if (existingActive && existingActive.learningPathId === learningPath.id) {
+    return existingActive;
+  }
+
+  await prisma.userLearningProgress.updateMany({
+    where: {
+      userId,
+      isActive: true,
+    },
+    data: {
+      isActive: false,
+    },
+  });
+
+  return prisma.userLearningProgress.create({
+    data: {
+      userId,
+      learningPathId: learningPath.id,
+      currentModuleId: learningPath.pathModules[0]
+        ? learningPath.pathModules[0].id
+        : null,
+      progressPercentage: 0,
+      isActive: true,
+    },
+  });
+};
+
+export const getUserCurrentFocusFromDB = async (userId: string) => {
+  const progress = await prisma.userLearningProgress.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+    include: {
+      learningPath: {
+        include: {
+          pathModules: {
+            include: {
+              moduleProblems: true,
+            },
+            orderBy: {
+              moduleOrder: "asc",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!progress) {
+    return null;
+  }
+
+  const attempts = await prisma.userProblemAttempt.findMany({
+    where: {
+      userId,
+      solved: true,
+    },
+  });
+
+  const solvedSet = new Set(
+    attempts.map((a) => `${a.platform}:${a.externalProblemId}`),
+  );
+
+  const modules = progress.learningPath.pathModules.map((module) => {
+    const totalProblems = module.moduleProblems.length;
+    const solvedProblems = module.moduleProblems.filter((problem) =>
+      solvedSet.has(`${problem.platform}:${problem.externalProblemId}`),
+    ).length;
+
+    const completionPercentage =
+      totalProblems === 0
+        ? 0
+        : Math.round((solvedProblems / totalProblems) * 100);
+
+    const isCompleted = totalProblems > 0 && solvedProblems === totalProblems;
+
+    return {
+      id: module.id,
+      title: module.title,
+      moduleOrder: module.moduleOrder,
+      totalProblems,
+      solvedProblems,
+      completionPercentage,
+      isCompleted,
+    };
+  });
+
+  const currentModule =
+    modules.find((m) => !m.isCompleted) || modules[modules.length - 1] || null;
+
+  return {
+    learningPathId: progress.learningPathId,
+    learningPathTitle: progress.learningPath.title,
+    modules,
+    currentModule,
+  };
+};
+
+export const getUserAchievementsFromDB = async (userId: string) => {
+  const records = await prisma.userAchievement.findMany({
+    where: { userId },
+    include: {
+      achievement: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return records.map((record: any) => ({
+    id: record.id,
+    achievementId: record.achievementId,
+    name: record.achievement.name,
+    description: record.achievement.description,
+    achievementType: record.achievement.achievementType,
+    iconUrl: record.achievement.iconUrl,
+    progressData: record.progressData,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  }));
+};
+
+export const seedEasyAchievementsInDB = async () => {
+  const existing = await prisma.achievement.findMany();
+
+  if (existing.length > 0) {
+    return existing;
+  }
+
+  await prisma.achievement.createMany({
+    data: [
+      {
+        name: "First Problem Solved",
+        description: "Solve your first coding problem.",
+        achievementType: "Milestone",
+        iconUrl: "first_problem_solved",
+      },
+      {
+        name: "Ten Problems Solved",
+        description: "Solve ten coding problems.",
+        achievementType: "Milestone",
+        iconUrl: "ten_problems_solved",
+      },
+      {
+        name: "First Module Completed",
+        description: "Complete all problems in one roadmap module.",
+        achievementType: "Module",
+        iconUrl: "first_module_completed",
+      },
+      {
+        name: "Roadmap Starter",
+        description: "Activate your first roadmap.",
+        achievementType: "Roadmap",
+        iconUrl: "roadmap_starter",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  return prisma.achievement.findMany();
+};
+
 export const getRoadmapsFromDB = async (): Promise<Roadmap[]> => {
   const roadmaps = await prisma.learningPath.findMany({
     include: {
