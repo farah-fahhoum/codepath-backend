@@ -15,6 +15,10 @@ import {
   createRoadmap,
   updateRoadmap,
   getMenteeTopicPerformanceOverview,
+  getMenteeRoadmap,
+  getMyRoadmapSummary,
+  getMyRoadmapCurrentFocus,
+  getMyRoadmapAchievements,
 } from "../controllers/roadmap.controller";
 import { authorize } from "../middlewares/authorization";
 
@@ -26,6 +30,26 @@ router.get("/:id", authorize(["Admin", "Mentee"], false), getRoadmap); //Admin &
 router.post("/create", authorize(["Admin"], false), createRoadmap);
 router.put("/update/:id", authorize(["Admin"], false), updateRoadmap);
 router.delete("/delete/:id", authorize(["Admin"], false), deleteRoadmap);
+router.get(
+  "/mentees/me/roadmap",
+  authorize(["Mentee"], false),
+  getMenteeRoadmap,
+);
+router.get(
+  "/my-roadmap/summary",
+  authorize(["Mentee"], false),
+  getMyRoadmapSummary,
+);
+router.get(
+  "/my-roadmap/current-focus",
+  authorize(["Mentee"], false),
+  getMyRoadmapCurrentFocus,
+);
+router.get(
+  "/my-roadmap/achievements",
+  authorize(["Mentee"], false),
+  getMyRoadmapAchievements,
+);
 
 // Module routes
 router.post("/create/modules", authorize(["Admin"], false), createModule);

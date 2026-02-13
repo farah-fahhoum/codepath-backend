@@ -15,6 +15,10 @@ import {
   createProblemInDB,
   updateProblemInDB,
   deleteProblemFromDB,
+  getActiveUserLearningProgressFromDB,
+  getUserRoadmapSummaryFromDB,
+  getUserCurrentFocusFromDB,
+  getUserAchievementsFromDB,
 } from "../repositories/roadmap.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 
@@ -407,5 +411,104 @@ export const getMenteeTopicPerformanceOverview = async (
       message: "Failed to fetch topic performance data",
       error: error.message,
     });
+  }
+};
+
+export const getMenteeRoadmap = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const progress = await getActiveUserLearningProgressFromDB(userId);
+
+    if (!progress) {
+      return res.status(404).json({
+        message: "No active roadmap found for mentee",
+      });
+    }
+
+    return res.status(200).json({
+      learningPathId: progress.learningPathId,
+      learningPathTitle: progress.learningPath.title,
+      skillLevel: progress.learningPath.skillLevel.title,
+      currentModuleId: progress.currentModuleId,
+      currentModuleTitle: progress.currentModule
+        ? progress.currentModule.title
+        : null,
+      startedAt: progress.startedAt,
+      completedAt: progress.completedAt,
+      progressPercentage: progress.progressPercentage,
+      isActive: progress.isActive,
+      modules: progress.learningPath.pathModules,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getMyRoadmapSummary = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const summary = await getUserRoadmapSummaryFromDB(userId);
+
+    if (!summary) {
+      return res.status(404).json({
+        message: "No active roadmap found for mentee",
+      });
+    }
+
+    return res.status(200).json(summary);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getMyRoadmapCurrentFocus = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const currentFocus = await getUserCurrentFocusFromDB(userId);
+
+    if (!currentFocus) {
+      return res.status(404).json({
+        message: "No active roadmap found for mentee",
+      });
+    }
+
+    return res.status(200).json(currentFocus.currentModule);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getMyRoadmapAchievements = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const achievements = await getUserAchievementsFromDB(userId);
+
+    return res.status(200).json(achievements);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
