@@ -161,11 +161,11 @@ export const getMenteeCodePathRating = async (
 
 export const getMenteeCodePathLevel = async (
   userId: string,
-): Promise<string> => {
+): Promise<{ tier: string; rating: number }> => {
   // Get user handle from external account
   const externalAccount = await getExternalAccountIntegrationFromDB(userId);
   if (!externalAccount || !externalAccount.handle) {
-    return "Not Assessed";
+    return { tier: "Not Assessed", rating: 0 };
   }
 
   const userHandle = externalAccount.handle;
@@ -183,7 +183,10 @@ export const getMenteeCodePathLevel = async (
     );
 
     const userData = response.data;
-    return userData.tier || "Not Assessed";
+    return {
+      tier: userData.tier || "Not Assessed",
+      rating: userData.rating || 0,
+    };
   } catch (error) {
     console.error("Error fetching user tier from FastAPI:", error);
 
@@ -193,7 +196,10 @@ export const getMenteeCodePathLevel = async (
       select: { skillLevel: { select: { title: true } } },
     });
 
-    return skillAssessment?.skillLevel?.title || "Not Assessed";
+    return {
+      tier: skillAssessment?.skillLevel?.title || "Not Assessed",
+      rating: 0,
+    };
   }
 };
 
