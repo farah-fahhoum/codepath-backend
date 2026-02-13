@@ -14,7 +14,7 @@ export const getQuizQuestionsFromDB = async (): Promise<quizQuestionList[]> => {
 };
 
 export const getQuizQuestionByIdFromDB = async (
-  id: number
+  id: number,
 ): Promise<quizQuestionSafe | null> => {
   const question = await prisma.quizQuestion.findUnique({
     where: { id },
@@ -32,7 +32,7 @@ export const getQuizQuestionByIdFromDB = async (
 export const addQuizQuestionToDB = async (
   questionTitle: string,
   answer: string,
-  score: number
+  score: number,
 ) => {
   await prisma.quizQuestion.create({
     data: { questionTitle, answer, score },
@@ -41,7 +41,7 @@ export const addQuizQuestionToDB = async (
 
 export const updateQuizQuestionInDB = async (
   id: number,
-  data: { questionTitle?: string; answer?: string; score?: number }
+  data: { questionTitle?: string; answer?: string; score?: number },
 ) => {
   await prisma.quizQuestion.update({
     where: { id },
@@ -56,7 +56,7 @@ export const deleteQuizQuestionFromDB = async (id: number): Promise<number> => {
 };
 
 export const getRandomQuizQuestionsFromDBForMentee = async (
-  count: number
+  count: number,
 ): Promise<quizQuestionForMentee[]> => {
   const all = await prisma.quizQuestion.findMany({
     select: { id: true, questionTitle: true, score: true },
@@ -68,4 +68,21 @@ export const getRandomQuizQuestionsFromDBForMentee = async (
   }
   const n = Math.max(0, Math.min(count, all.length));
   return all.slice(0, n);
+};
+
+export const getMenteeQuizResult = async (userId: string): Promise<string> => {
+  const result = await prisma.userSkillAssessment.findFirst({
+    where: {
+      userId,
+      assessmentType: "Quiz",
+    },
+    include: { skillLevel: { select: { title: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!result || !result.skillLevel) {
+    return "Not Assessed";
+  }
+
+  return result.skillLevel.title;
 };
