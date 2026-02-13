@@ -11,6 +11,7 @@ import {
   getRandomQuizQuestionsFromDBForMentee,
 } from "../repositories/quiz.repo";
 import { getSkillLevelByTitle } from "../repositories/skillLevel.repo";
+import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.repo";
 
 export const getQuizQuestions = async (_req: Request, res: Response) => {
   try {
@@ -212,6 +213,8 @@ export const submitQuiz = async (req: Request, res: Response) => {
           skillLevelId: skillLevelId,
         },
       });
+
+      await activateUserRoadmapForSkillLevelInDB(userId, skillLevelId);
 
       // Return the response from FastAPI
       return res.status(200).json({
