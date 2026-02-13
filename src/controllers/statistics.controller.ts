@@ -48,7 +48,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
 
     return res.status(200).json({
       codePathRating: codePathRating,
-      codePathLevel: codePathLevel,
+      codePathLevel: codePathLevel.tier,
       problemsSolved: problemsSolved,
       accuracy: accuracy,
       yourCodePrint: yourCodePrint,
