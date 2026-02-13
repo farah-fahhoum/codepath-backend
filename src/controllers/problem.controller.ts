@@ -164,6 +164,79 @@ export const submitProblem = async (req: Request, res: Response) => {
       bestExecutionTime,
     );
 
+    if (solved) {
+      const solvedCount = await prisma.userProblemAttempt.count({
+        where: {
+          userId,
+          solved: true,
+        },
+      });
+
+      const achievements = await prisma.achievement.findMany({
+        where: {
+          name: {
+            in: ["First Problem Solved", "Ten Problems Solved"],
+          },
+        },
+      });
+
+      const existingUserAchievements = await prisma.userAchievement.findMany({
+        where: {
+          userId,
+          achievement: {
+            name: {
+              in: ["First Problem Solved", "Ten Problems Solved"],
+            },
+          },
+        },
+        include: {
+          achievement: true,
+        },
+      });
+
+      const hasAchievement = (name: string) =>
+        existingUserAchievements.some(
+          (ua: { achievement: { name: string } }) =>
+            ua.achievement.name === name,
+        );
+
+      const firstProblemAchievement = achievements.find(
+        (a: { name: string }) => a.name === "First Problem Solved",
+      );
+
+      if (firstProblemAchievement && solvedCount >= 1) {
+        if (!hasAchievement("First Problem Solved")) {
+          await prisma.userAchievement.create({
+            data: {
+              userId,
+              achievementId: firstProblemAchievement.id,
+              progressData: {
+                totalSolved: solvedCount,
+              },
+            },
+          });
+        }
+      }
+
+      const tenProblemsAchievement = achievements.find(
+        (a: { name: string }) => a.name === "Ten Problems Solved",
+      );
+
+      if (tenProblemsAchievement && solvedCount >= 10) {
+        if (!hasAchievement("Ten Problems Solved")) {
+          await prisma.userAchievement.create({
+            data: {
+              userId,
+              achievementId: tenProblemsAchievement.id,
+              progressData: {
+                totalSolved: solvedCount,
+              },
+            },
+          });
+        }
+      }
+    }
+
     return res.status(201).json({
       message: "Problem submission recorded successfully",
       solved,
