@@ -27,6 +27,7 @@ import {
   getMenteeCodePathLevel,
   getMenteeProblemsSolvedCount,
 } from "../repositories/statistics.repo";
+import { getMenteeQuizResult } from "../repositories/quiz.repo";
 
 export const adminAndMenteeLogin = async (req: Request, res: Response) => {
   try {
@@ -303,13 +304,19 @@ export const getMenteeProfile = async (req: Request, res: Response) => {
     const externalAccountIntegration =
       await getExternalAccountIntegrationFromDB(userId);
     const problemsSolved = await getMenteeProblemsSolvedCount(userId);
-    const quizResult = await getMenteeCodePathLevel(userId);
+    const externalAccountInfo = await getMenteeCodePathLevel(userId);
+    const quizResult = await getMenteeQuizResult(userId);
     if (!mentee) return res.status(404).json({ message: "Invalid mentee id" });
     else
       return res.status(200).json({
         mentee,
         externalAccountIntegration,
-        statistics: { problemsSolved, quizResult },
+        statistics: {
+          problemsSolved,
+          quizResult,
+          level: externalAccountInfo.tier,
+          rating: externalAccountInfo.rating,
+        },
       });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
