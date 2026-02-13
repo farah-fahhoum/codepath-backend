@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { createExternalAccount } from "../repositories/externalAccount.repo";
 import { getMenteeCodePathLevel } from "../repositories/statistics.repo";
+import { getSkillLevelByTitle } from "../repositories/skillLevel.repo";
+import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.repo";
 
 export const cfIntegrationOnRegisteration = async (
   req: Request,
@@ -29,10 +31,17 @@ export const cfIntegrationOnRegisteration = async (
     // Call getMenteeCodePathLevel to get the user's level
     const codePathLevel = await getMenteeCodePathLevel(userId);
 
+    if (codePathLevel.tier && codePathLevel.tier !== "Not Assessed") {
+      const skillLevel = await getSkillLevelByTitle(codePathLevel.tier);
+      if (skillLevel) {
+        await activateUserRoadmapForSkillLevelInDB(userId, skillLevel.id);
+      }
+    }
+
     return res.status(200).json({
       message: "Codeforces integration successful",
       handle,
-      codePathLevel,
+      codePathLevel: codePathLevel.tier,
     });
   } catch (error) {
     console.error("Error in cfIntegrationOnRegisteration:", error);
