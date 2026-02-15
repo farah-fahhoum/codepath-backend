@@ -6,8 +6,10 @@ import {
   getQuizQuestions,
   updateQuizQuestion,
   getQuiz,
+  getQuizAll,
   getQuizAIVersion,
   submitQuiz,
+  submitQuizDB,
 } from "../controllers/quiz.controller";
 import { authorize } from "../middlewares/authorization";
 
@@ -34,7 +36,9 @@ router.delete(
 
 //Quiz Routes - Mentee
 router.get("/", authorize(["Mentee"], false), getQuiz);
+router.get("/all", authorize(["Mentee"], false), getQuizAll);
 router.get("/start", authorize(["Mentee"], false), getQuizAIVersion);
 router.post("/submit", authorize(["Mentee"], false), submitQuiz);
+router.post("/submit-db", authorize(["Mentee"], false), submitQuizDB);
 
 export { router };

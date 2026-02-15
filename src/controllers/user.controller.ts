@@ -20,6 +20,7 @@ import {
   getUserByEmailForAuth,
   getUserByIdWithPassword,
   updateAdminInDB,
+  updateMenteeProfileInDB,
   updateUserPasswordInDB,
 } from "../repositories/user.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
@@ -28,6 +29,11 @@ import {
   getMenteeProblemsSolvedCount,
 } from "../repositories/statistics.repo";
 import { getMenteeQuizResult } from "../repositories/quiz.repo";
+import {
+  getSkillLevelById,
+  setMenteeManualSkillLevel,
+} from "../repositories/skillLevel.repo";
+import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.repo";
 
 export const adminAndMenteeLogin = async (req: Request, res: Response) => {
   try {
@@ -323,6 +329,30 @@ export const getMenteeProfile = async (req: Request, res: Response) => {
   }
 };
 
+export const updateMenteeProfile = async (req: Request, res: Response) => {
+  try {
+    const inputSchema = Joi.object({
+      fullName: Joi.string().min(1).optional(),
+      phone: Joi.string().allow("").optional(),
+      country: Joi.string().optional(),
+      bio: Joi.string().allow("").optional(),
+    });
+    const { value, error } = inputSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+    if (Object.keys(value).length === 0)
+      return res.status(400).json({ message: "No fields to update" });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    await updateMenteeProfileInDB(userId, value);
+    return res.status(200).json({ message: "Profile updated successfully" });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 export const updateMenteePassword = async (req: Request, res: Response) => {
   try {
     const inputSchema = Joi.object({
@@ -349,5 +379,33 @@ export const updateMenteePassword = async (req: Request, res: Response) => {
     return res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const setMenteeSkillLevel = async (req: Request, res: Response) => {
+  try {
+    const inputSchema = Joi.object({
+      skillLevelId: Joi.number().integer().positive().required(),
+    });
+    const { value, error } = inputSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const skillLevel = await getSkillLevelById(value.skillLevelId);
+    if (!skillLevel)
+      return res.status(404).json({ message: "Skill level not found" });
+
+    await setMenteeManualSkillLevel(userId, value.skillLevelId);
+    await activateUserRoadmapForSkillLevelInDB(userId, value.skillLevelId);
+
+    return res.status(200).json({
+      message: "Skill level set successfully",
+      skillLevel: { id: skillLevel.id, title: skillLevel.title },
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal Server Error", error: err });
   }
 };

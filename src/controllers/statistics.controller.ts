@@ -11,6 +11,8 @@ import {
   getTotalMentees,
   getTotalProblemsSolved,
   getTotalSubmissions,
+  getActivityByDateForUser,
+  getMonthlyGrowthForUser,
 } from "../repositories/statistics.repo";
 
 export const getAdminStatistics = async (req: Request, res: Response) => {
@@ -54,6 +56,33 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
       yourCodePrint: yourCodePrint,
       insightsPanel: insightsPanel,
     });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getMenteeActivity = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id as string | undefined;
+    if (!userId)
+      return res.status(401).json({ message: "Unauthorized" });
+    const year = parseInt(String(req.query.year ?? new Date().getFullYear()), 10);
+    if (Number.isNaN(year) || year < 2000 || year > 2100)
+      return res.status(400).json({ message: "Invalid year" });
+    const data = await getActivityByDateForUser(userId, year);
+    return res.status(200).json({ data });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getMenteeGrowth = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id as string | undefined;
+    if (!userId)
+      return res.status(401).json({ message: "Unauthorized" });
+    const months = await getMonthlyGrowthForUser(userId);
+    return res.status(200).json({ months });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }

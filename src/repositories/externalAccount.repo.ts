@@ -18,6 +18,17 @@ export const getExternalAccountIntegrationFromDB = async (
   });
 };
 
+/** Get Codeforces handle for user when linked (for stats from CF API). */
+export const getCodeforcesHandleForUser = async (
+  userId: string,
+): Promise<string | null> => {
+  const account = await prisma.externalAccount.findFirst({
+    where: { userId, platform: "Codeforces" },
+    select: { handle: true },
+  });
+  return account?.handle ?? null;
+};
+
 export const createExternalAccount = async (
   userId: string,
   platform: string,

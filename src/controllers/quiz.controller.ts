@@ -9,8 +9,12 @@ import {
   getQuizQuestionsFromDB,
   updateQuizQuestionInDB,
   getRandomQuizQuestionsFromDBForMentee,
+  getAllQuizQuestionsForMentee,
 } from "../repositories/quiz.repo";
-import { getSkillLevelByTitle } from "../repositories/skillLevel.repo";
+import {
+  getSkillLevelByTitle,
+  getAllSkillLevels,
+} from "../repositories/skillLevel.repo";
 import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.repo";
 
 export const getQuizQuestions = async (_req: Request, res: Response) => {
@@ -101,14 +105,29 @@ export const deleteQuizQuestion = async (req: Request, res: Response) => {
 export const getQuiz = async (req: Request, res: Response) => {
   try {
     const querySchema = Joi.object({
-      numberofQuestions: Joi.number().integer().min(1).required(),
+      numberofQuestions: Joi.alternatives()
+        .try(Joi.number().integer().min(1), Joi.string().pattern(/^\d+$/))
+        .required(),
     });
     const { value, error } = querySchema.validate(req.query);
     if (error) return res.status(400).json({ message: error.message });
 
-    const questions = await getRandomQuizQuestionsFromDBForMentee(
-      value.numberofQuestions,
-    );
+    const count =
+      typeof value.numberofQuestions === "string"
+        ? parseInt(value.numberofQuestions, 10)
+        : value.numberofQuestions;
+
+    const questions = await getRandomQuizQuestionsFromDBForMentee(count);
+    return res.status(200).json(questions);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+/** Get all quiz questions from DB (for placement quiz — whole table) */
+export const getQuizAll = async (_req: Request, res: Response) => {
+  try {
+    const questions = await getAllQuizQuestionsForMentee();
     return res.status(200).json(questions);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
@@ -118,16 +137,23 @@ export const getQuiz = async (req: Request, res: Response) => {
 export const getQuizAIVersion = async (req: Request, res: Response) => {
   try {
     const querySchema = Joi.object({
-      numberofQuestions: Joi.number().integer().min(1).required(),
+      numberofQuestions: Joi.alternatives()
+        .try(Joi.number().integer().min(1), Joi.string().pattern(/^\d+$/))
+        .required(),
     });
     const { value, error } = querySchema.validate(req.query);
     if (error) return res.status(400).json({ message: error.message });
+
+    const count =
+      typeof value.numberofQuestions === "string"
+        ? parseInt(value.numberofQuestions, 10)
+        : value.numberofQuestions;
 
     // Make API call to FastAPI quiz service
     const fastApiUrl =
       process.env.FASTAPI_BASE_URL +
       "/quiz/start?limit=" +
-      value.numberofQuestions;
+      count;
 
     try {
       const response = await axios.get(fastApiUrl, {
@@ -248,5 +274,82 @@ export const submitQuiz = async (req: Request, res: Response) => {
     }
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+/** Submit DB quiz (text answers) — score by comparing to correct answer, determine level from total score */
+export const submitQuizDB = async (req: Request, res: Response) => {
+  try {
+    const bodySchema = Joi.object({
+      answers: Joi.array()
+        .items(
+          Joi.object({
+            questionId: Joi.number().integer().required(),
+            userAnswer: Joi.string().allow("").required(),
+          })
+        )
+        .required(),
+    });
+    const { value, error } = bodySchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is set by auth middleware
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    let totalScore = 0;
+    let maxScore = 0;
+
+    for (const a of value.answers) {
+      const question = await getQuizQuestionByIdFromDB(a.questionId);
+      if (!question) continue;
+      maxScore += question.score;
+      const correct =
+        String(a.userAnswer).trim().toLowerCase() ===
+        String(question.answer).trim().toLowerCase();
+      if (correct) totalScore += question.score;
+    }
+
+    const levels = await getAllSkillLevels();
+    if (levels.length === 0) {
+      return res.status(500).json({
+        message: "No skill levels configured",
+      });
+    }
+
+    const percentage = maxScore > 0 ? totalScore / maxScore : 0;
+    const levelIndex = Math.min(
+      Math.floor(percentage * levels.length),
+      levels.length - 1
+    );
+    const skillLevel = levels[levelIndex];
+    const skillLevelId = skillLevel.id;
+
+    await prisma.userSkillAssessment.upsert({
+      where: {
+        userId_assessmentType_skillLevelId: {
+          userId,
+          assessmentType: "Quiz",
+          skillLevelId,
+        },
+      },
+      create: {
+        userId,
+        assessmentType: "Quiz",
+        score: totalScore,
+        skillLevelId,
+      },
+      update: { score: totalScore, updatedAt: new Date() },
+    });
+
+    await activateUserRoadmapForSkillLevelInDB(userId, skillLevelId);
+
+    return res.status(200).json({
+      level: skillLevel.title,
+      totalScore,
+      maxScore,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Internal Server Error", error: err });
   }
 };

@@ -1,5 +1,27 @@
 import { prisma } from "../lib/prisma";
 
+export const setMenteeManualSkillLevel = async (
+  userId: string,
+  skillLevelId: number,
+): Promise<void> => {
+  await prisma.userSkillAssessment.upsert({
+    where: {
+      userId_assessmentType_skillLevelId: {
+        userId,
+        assessmentType: "Manual",
+        skillLevelId,
+      },
+    },
+    create: {
+      userId,
+      assessmentType: "Manual",
+      score: 0,
+      skillLevelId,
+    },
+    update: { score: 0, updatedAt: new Date() },
+  });
+};
+
 export const getAllSkillLevels = async (): Promise<
   {
     id: number;

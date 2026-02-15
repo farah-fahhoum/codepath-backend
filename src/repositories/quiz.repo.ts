@@ -70,6 +70,20 @@ export const getRandomQuizQuestionsFromDBForMentee = async (
   return all.slice(0, n);
 };
 
+/** Get all quiz questions for mentee (shuffled) — no answer exposed */
+export const getAllQuizQuestionsForMentee = async (): Promise<
+  quizQuestionForMentee[]
+> => {
+  const all = await prisma.quizQuestion.findMany({
+    select: { id: true, questionTitle: true, score: true },
+  });
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all;
+};
+
 export const getMenteeQuizResult = async (userId: string): Promise<string> => {
   const result = await prisma.userSkillAssessment.findFirst({
     where: {

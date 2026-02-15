@@ -10,6 +10,7 @@ import {
   createExternalSubmission,
   deleteProblemFromFavouriteDB,
   getExternalAccountByUserIdAndPlatform,
+  getCodeforcesProblemsMap,
   getProblemFromCodeforces,
   getUserFavouriteProblemsFromDB,
   upsertUserProblemAttempt,
@@ -19,6 +20,8 @@ export const getProblems = async (req: Request, res: Response) => {
     const querySchema = Joi.object({
       page: Joi.number().integer().min(1).default(1),
       limit: Joi.number().integer().min(1).max(200).default(20),
+      minRating: Joi.number().integer().min(0).optional().allow(null),
+      tag: Joi.string().optional().allow("").allow(null),
     });
     const { value, error } = querySchema.validate(req.query);
     if (error) return res.status(400).json({ message: error.message });
@@ -34,7 +37,6 @@ export const getProblems = async (req: Request, res: Response) => {
         status: cfProblems.status,
       });
     }
-    //Needs to add if in user's favourite field
     const allProblems = (cfProblems?.result?.problems ?? []).map((p: any) => ({
       title: p.name,
       tags: p.tags ?? [],
@@ -43,16 +45,34 @@ export const getProblems = async (req: Request, res: Response) => {
       contestId: p.contestId ?? null,
     }));
 
-    const total = allProblems.length;
+    let filtered = allProblems;
+    if (value.minRating != null && value.minRating > 0) {
+      filtered = filtered.filter(
+        (p: { rating: number | null }) =>
+          p.rating != null && p.rating >= value.minRating
+      );
+    }
+    if (value.tag && value.tag !== "all") {
+      filtered = filtered.filter((p: { tags: string[] }) =>
+        p.tags.includes(value.tag)
+      );
+    }
+
+    const total = filtered.length;
     const start = (value.page - 1) * value.limit;
-    const items = allProblems.slice(start, start + value.limit);
+    const items = filtered.slice(start, start + value.limit);
+
+    const availableTags = [
+      ...new Set(allProblems.flatMap((p: { tags: string[] }) => p.tags)),
+    ].sort();
 
     return res.status(200).json({
       page: value.page,
       limit: value.limit,
       total,
-      totalPages: Math.ceil(total / value.limit),
+      totalPages: Math.ceil(total / value.limit) || 1,
       items,
+      availableTags,
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -63,6 +83,75 @@ export const getProblems = async (req: Request, res: Response) => {
       });
     }
     return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+const PISTON_EXECUTE_URL = "https://emkc.org/api/v2/piston/execute";
+
+const PISTON_LANGUAGE_MAP: Record<string, string> = {
+  cpp: "cpp",
+  java: "java",
+  python: "python",
+  javascript: "javascript",
+};
+
+export const runCode = async (req: Request, res: Response) => {
+  try {
+    const bodySchema = Joi.object({
+      code: Joi.string().required(),
+      language: Joi.string()
+        .valid("cpp", "java", "python", "javascript")
+        .required(),
+      stdin: Joi.string().allow("").optional(),
+    });
+    const { value, error } = bodySchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const pistonLanguage = PISTON_LANGUAGE_MAP[value.language] ?? value.language;
+
+    const response = await axios.post(
+      PISTON_EXECUTE_URL,
+      {
+        language: pistonLanguage,
+        version: "*",
+        files: [{ content: value.code }],
+        stdin: value.stdin ?? "",
+      },
+      { timeout: 15000 },
+    );
+
+    const data = response.data;
+    const run = data?.run;
+    if (!run) {
+      return res.status(502).json({
+        message: "Unexpected response from code execution service",
+      });
+    }
+
+    const stdout = run.stdout ?? "";
+    const stderr = run.stderr ?? "";
+    const combined =
+      stderr.trim().length > 0 ? `${stderr}\n${stdout}` : stdout;
+
+    return res.status(200).json({
+      stdout: run.stdout ?? "",
+      stderr: run.stderr ?? "",
+      output: combined,
+      code: run.code,
+      signal: run.signal ?? null,
+    });
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status ?? 502;
+      const message =
+        err.response?.data?.message ??
+        err.message ??
+        "Code execution service error";
+      return res.status(status).json({
+        message: status === 502 ? "Code execution service unavailable" : message,
+      });
+    }
+    return res.status(500).json({ message: "Internal Server Error", error: {} });
   }
 };
 
@@ -248,14 +337,249 @@ export const submitProblem = async (req: Request, res: Response) => {
   }
 };
 
-//Get user's favourite problems list
+/** Sync latest Codeforces submission for this problem and record it (Mentee, Codeforces linked). */
+export const syncSubmissionFromCodeforces = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const bodySchema = Joi.object({
+      contestId: Joi.number().integer().min(1).required(),
+      index: Joi.string().required(),
+    });
+    const { value, error } = bodySchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    const externalAccount = await getExternalAccountByUserIdAndPlatform(
+      userId,
+      "Codeforces",
+    );
+    if (!externalAccount || !(externalAccount as { handle?: string }).handle) {
+      return res.status(404).json({
+        message:
+          "Link your Codeforces account first to sync submissions.",
+      });
+    }
+
+    const handle = (externalAccount as { handle: string }).handle;
+    let cfResp;
+    try {
+      cfResp = await axios.get(
+        "https://codeforces.com/api/user.status",
+        {
+          params: { handle, from: 1, count: 50 },
+          timeout: 10000,
+        },
+      );
+    } catch (cfErr: unknown) {
+      if (axios.isAxiosError(cfErr)) {
+        const status = cfErr.response?.status;
+        const isUnavailable = status === 502 || status === 503 || status === 504;
+        return res.status(502).json({
+          message: isUnavailable
+            ? "Codeforces is temporarily unavailable. Please try again in a few minutes."
+            : (cfErr.response?.data as { comment?: string })?.comment ?? "Codeforces API error",
+        });
+      }
+      throw cfErr;
+    }
+
+    if (!cfResp.data || cfResp.data.status !== "OK") {
+      return res.status(502).json({
+        message:
+          cfResp.data?.comment ?? "Codeforces API returned non-OK status",
+      });
+    }
+
+    const submissions = cfResp.data.result ?? [];
+    const match = submissions.find(
+      (s: { contestId: number; problem: { index: string } }) =>
+        s.contestId === value.contestId && s.problem?.index === value.index,
+    );
+
+    if (!match) {
+      return res.status(404).json({
+        message:
+          "No submission found for this problem. Submit on Codeforces first, then sync.",
+      });
+    }
+
+    const problemId = `${value.contestId}${value.index}`;
+    const submissionTime = match.creationTimeSeconds ?? Math.floor(Date.now() / 1000);
+    const verdict = match.verdict ?? "";
+    const executionTime = match.timeConsumedMillis ?? 0;
+    const memoryUsed = match.memoryConsumedBytes ?? 0;
+    const programmingLanguage = match.programmingLanguage ?? "";
+
+    const solved = ["AC", "Accepted", "OK"].includes(verdict);
+
+    const currentAttempt = await prisma.userProblemAttempt.findUnique({
+      where: {
+        userId_externalProblemId_platform: {
+          userId,
+          externalProblemId: problemId,
+          platform: "Codeforces",
+        },
+      },
+    });
+
+    const attemptCount = (currentAttempt?.attemptCount ?? 0) + 1;
+    const bestExecutionTime = solved
+      ? Math.min(
+          currentAttempt?.bestExecutionTime ?? Infinity,
+          executionTime || Infinity,
+        )
+      : currentAttempt?.bestExecutionTime ?? null;
+
+    try {
+      await createExternalSubmission(
+        String(match.id),
+        externalAccount.id.toString(),
+        problemId,
+        submissionTime,
+        verdict,
+        executionTime,
+        memoryUsed,
+        programmingLanguage,
+      );
+    } catch (createErr: unknown) {
+      const prismaErr = createErr as { code?: string };
+      if (prismaErr?.code === "P2002") {
+        return res.status(200).json({
+          message: "Submission already recorded",
+          solved,
+          attemptCount: currentAttempt?.attemptCount ?? attemptCount,
+        });
+      }
+      throw createErr;
+    }
+
+    await upsertUserProblemAttempt(
+      userId,
+      problemId,
+      "Codeforces",
+      solved,
+      attemptCount,
+      bestExecutionTime,
+    );
+
+    if (solved) {
+      const solvedCount = await prisma.userProblemAttempt.count({
+        where: { userId, solved: true },
+      });
+
+      const achievements = await prisma.achievement.findMany({
+        where: {
+          name: { in: ["First Problem Solved", "Ten Problems Solved"] },
+        },
+      });
+
+      const existingUserAchievements = await prisma.userAchievement.findMany({
+        where: {
+          userId,
+          achievement: {
+            name: { in: ["First Problem Solved", "Ten Problems Solved"] },
+          },
+        },
+        include: { achievement: true },
+      });
+
+      const hasAchievement = (name: string) =>
+        existingUserAchievements.some(
+          (ua: { achievement: { name: string } }) =>
+            ua.achievement.name === name,
+        );
+
+      const firstProblem = achievements.find(
+        (a: { name: string }) => a.name === "First Problem Solved",
+      );
+      if (firstProblem && solvedCount >= 1 && !hasAchievement("First Problem Solved")) {
+        await prisma.userAchievement.create({
+          data: {
+            userId,
+            achievementId: firstProblem.id,
+            progressData: { totalSolved: solvedCount },
+          },
+        });
+      }
+
+      const tenProblems = achievements.find(
+        (a: { name: string }) => a.name === "Ten Problems Solved",
+      );
+      if (
+        tenProblems &&
+        solvedCount >= 10 &&
+        !hasAchievement("Ten Problems Solved")
+      ) {
+        await prisma.userAchievement.create({
+          data: {
+            userId,
+            achievementId: tenProblems.id,
+            progressData: { totalSolved: solvedCount },
+          },
+        });
+      }
+    }
+
+    return res.status(201).json({
+      message: "Submission synced from Codeforces",
+      solved,
+      attemptCount,
+    });
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status;
+      const isUnavailable = status === 502 || status === 503 || status === 504;
+      return res.status(502).json({
+        message: isUnavailable
+          ? "Codeforces is temporarily unavailable. Please try again in a few minutes."
+          : (err.response?.data as { comment?: string })?.comment ?? "Codeforces API error",
+      });
+    }
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error("Error in syncSubmissionFromCodeforces:", msg);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+// Get user's favourite problems list (enriched with title, rating, tags for Codeforces)
 export const getFavouriteProblems = async (req: Request, res: Response) => {
   try {
     // @ts-expect-error userId is defined
     const userId = req.user?.id as string;
 
     const favouriteList = await getUserFavouriteProblemsFromDB(userId);
-    return res.status(200).json(favouriteList);
+    let cfMap: Awaited<ReturnType<typeof getCodeforcesProblemsMap>> = new Map();
+    const codeforcesFavs = favouriteList.filter(
+      (f: { platform: string }) => f.platform === "Codeforces"
+    );
+    if (codeforcesFavs.length > 0) {
+      cfMap = await getCodeforcesProblemsMap();
+    }
+    const enriched = favouriteList.map((f: any) => {
+      const base = {
+        id: f.id,
+        externalProblemId: f.externalProblemId,
+        platform: f.platform,
+        createdAt: f.createdAt,
+      };
+      if (f.platform === "Codeforces" && cfMap.has(f.externalProblemId)) {
+        const details = cfMap.get(f.externalProblemId)!;
+        return {
+          ...base,
+          title: details.title,
+          tags: details.tags,
+          rating: details.rating,
+          contestId: details.contestId,
+          index: details.index,
+        };
+      }
+      return base;
+    });
+    return res.status(200).json(enriched);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }

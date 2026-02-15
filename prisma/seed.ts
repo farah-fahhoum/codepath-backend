@@ -8,12 +8,15 @@ async function main() {
   // Delete in reverse dependency order
   await prisma.moduleProblem.deleteMany();
   await prisma.moduleResource.deleteMany();
+  await prisma.userLearningProgress.deleteMany();
   await prisma.pathModule.deleteMany();
   await prisma.learningPath.deleteMany();
   await prisma.userSkillAssessment.deleteMany();
   await prisma.favouriteProblem.deleteMany();
   await prisma.userProblemAttempt.deleteMany();
   await prisma.externalSubmission.deleteMany();
+  await prisma.userAchievement.deleteMany();
+  await prisma.achievement.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.externalAccount.deleteMany();
   await prisma.user.deleteMany();
@@ -27,6 +30,37 @@ async function main() {
   console.log("Seeding roles...");
   const adminRole = await prisma.role.create({ data: { title: "Admin" } });
   const menteeRole = await prisma.role.create({ data: { title: "Mentee" } });
+
+  console.log("Seeding achievements...");
+  await prisma.achievement.createMany({
+    data: [
+      {
+        name: "First Problem Solved",
+        description: "Solve your first coding problem.",
+        achievementType: "Milestone",
+        iconUrl: "first_problem_solved",
+      },
+      {
+        name: "Ten Problems Solved",
+        description: "Solve ten coding problems.",
+        achievementType: "Milestone",
+        iconUrl: "ten_problems_solved",
+      },
+      {
+        name: "First Module Completed",
+        description: "Complete all problems in one roadmap module.",
+        achievementType: "Module",
+        iconUrl: "first_module_completed",
+      },
+      {
+        name: "Roadmap Starter",
+        description: "Activate your first roadmap.",
+        achievementType: "Roadmap",
+        iconUrl: "roadmap_starter",
+      },
+    ],
+    skipDuplicates: true,
+  });
 
   console.log("Seeding users and profiles...");
   const hashedAdmin = await bcrypt.hash("admin123", 10);
@@ -315,6 +349,37 @@ async function main() {
       platform: "Codeforces",
       solved: true,
       attemptCount: 1,
+    },
+  });
+
+  console.log("Seeding user learning progress...");
+  await prisma.userLearningProgress.create({
+    data: {
+      userId: mentee1.id,
+      learningPathId: pathBeginner.id,
+      currentModuleId: module2.id,
+      progressPercentage: 50,
+      isActive: true,
+    },
+  });
+
+  await prisma.userLearningProgress.create({
+    data: {
+      userId: mentee2.id,
+      learningPathId: pathBeginner.id,
+      currentModuleId: module1.id,
+      progressPercentage: 25,
+      isActive: true,
+    },
+  });
+
+  await prisma.userLearningProgress.create({
+    data: {
+      userId: mentee2.id,
+      learningPathId: pathIntermediate.id,
+      currentModuleId: module3.id,
+      progressPercentage: 0,
+      isActive: false,
     },
   });
 

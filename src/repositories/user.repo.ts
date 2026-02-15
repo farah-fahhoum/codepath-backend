@@ -316,3 +316,18 @@ export const getMenteeProfileFromDB = async (
       createdAt: menteeRecord.createdAt,
     };
 };
+
+export const updateMenteeProfileInDB = async (
+  userId: string,
+  data: { fullName?: string; phone?: string; country?: string; bio?: string },
+): Promise<void> => {
+  await prisma.profile.updateMany({
+    where: { userId },
+    data: {
+      ...(data.fullName != null && { fullName: data.fullName }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.country != null && { country: data.country }),
+      ...(data.bio !== undefined && { bio: data.bio }),
+    },
+  });
+};

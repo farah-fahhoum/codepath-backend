@@ -496,6 +496,32 @@ export const getMyRoadmapCurrentFocus = async (req: Request, res: Response) => {
   }
 };
 
+export const getMyRoadmapModulesWithProgress = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const focusData = await getUserCurrentFocusFromDB(userId);
+
+    if (!focusData) {
+      return res.status(404).json({
+        message: "No active roadmap found for mentee",
+      });
+    }
+
+    return res.status(200).json(focusData);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
 export const getMyRoadmapAchievements = async (req: Request, res: Response) => {
   try {
     // @ts-expect-error userId is defined

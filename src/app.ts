@@ -14,7 +14,6 @@ import { router as roadmapRoutes } from "./routes/roadmap.routes";
 import { router as skillLevelRoutes } from "./routes/skillLevel.api";
 import { router as topicRoutes } from "./routes/topic.api";
 import { router as externalAccountRoutes } from "./routes/externalAccount.api";
-import { seedEasyAchievementsInDB } from "./repositories/roadmap.repo";
 
 const app = express();
 app.use(express.json({ limit: "20mb" }));
@@ -39,16 +38,6 @@ app.use("/roadmaps", roadmapRoutes);
 app.use("/skill-levels", skillLevelRoutes);
 app.use("/topics", topicRoutes);
 app.use("/external-accounts", externalAccountRoutes);
-
-// One-time task
-(async () => {
-  try {
-    await seedEasyAchievementsInDB();
-    console.log("Achievements seeded");
-  } catch (e) {
-    console.error("Failed to seed achievements:", e);
-  }
-})();
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);

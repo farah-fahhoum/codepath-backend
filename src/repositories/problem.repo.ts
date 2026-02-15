@@ -1,6 +1,52 @@
 import { prisma } from "../lib/prisma";
 import puppeteer from "puppeteer";
+import axios from "axios";
 import { favouriteProblem } from "../types/problem.type";
+
+export type CodeforcesProblemDetails = {
+  title: string;
+  tags: string[];
+  rating: number | null;
+  contestId: number;
+  index: string;
+};
+
+const CODEFORCES_MAP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+let codeforcesMapCache: { map: Map<string, CodeforcesProblemDetails>; expiresAt: number } | null = null;
+
+/** Codeforces problemId (contestId+index) -> details. Cached for 10 minutes. */
+export const getCodeforcesProblemsMap = async (): Promise<
+  Map<string, CodeforcesProblemDetails>
+> => {
+  const now = Date.now();
+  if (codeforcesMapCache && codeforcesMapCache.expiresAt > now) {
+    return codeforcesMapCache.map;
+  }
+  const resp = await axios.get(
+    "https://codeforces.com/api/problemset.problems",
+    { timeout: 10000 }
+  );
+  const data = resp.data;
+  const map = new Map<string, CodeforcesProblemDetails>();
+  if (data?.status === "OK") {
+    const problems = data.result?.problems ?? [];
+    for (const p of problems) {
+      const contestId = p.contestId ?? null;
+      const index = p.index ?? "";
+      if (contestId != null && index) {
+        map.set(`${contestId}${index}`, {
+          title: p.name ?? "",
+          tags: p.tags ?? [],
+          rating: p.rating ?? null,
+          contestId,
+          index,
+        });
+      }
+    }
+  }
+  codeforcesMapCache = { map, expiresAt: now + CODEFORCES_MAP_TTL_MS };
+  return map;
+};
 export const getUserFavouriteProblemsFromDB = async (
   userId: string,
 ): Promise<favouriteProblem[]> => {

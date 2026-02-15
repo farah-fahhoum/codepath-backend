@@ -10,8 +10,10 @@ import {
   getMentees,
   getRole,
   getRoles,
+  setMenteeSkillLevel,
   updateAdmin,
   updateMenteePassword,
+  updateMenteeProfile,
 } from "../controllers/user.controller";
 
 const router = express.Router();
@@ -32,9 +34,19 @@ router.get(
   getMenteeProfile
 );
 router.post(
+  "/mentees/profile/update",
+  authorize(["Mentee"], false),
+  updateMenteeProfile
+);
+router.post(
   "/mentees/password/update",
   authorize(["Mentee"], false),
   updateMenteePassword
+);
+router.post(
+  "/mentees/skill-level",
+  authorize(["Mentee"], false),
+  setMenteeSkillLevel
 );
 
 //Role Routes
