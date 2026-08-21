@@ -21,9 +21,16 @@
     "setup:dev": "npm run docker:up && npm run db:generate && npm run db:migrate"
   },
   "packageManager": "pnpm@10.23.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "puppeteer"
+    ]
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "archiver": "^7.0.1",
     "axios": "^1.7.2",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -41,6 +48,7 @@
   },
   "devDependencies": {
     "@prisma/config": "^7.0.0",
+    "@types/archiver": "^6.0.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",

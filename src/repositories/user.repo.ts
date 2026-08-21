@@ -7,6 +7,7 @@ import {
   role,
   userRoleForAuthType,
 } from "../types/user.type";
+import { NearbyMentee } from "../types/nearby.type";
 
 // Shared Prisma client
 
@@ -330,4 +331,138 @@ export const updateMenteeProfileInDB = async (
       ...(data.bio !== undefined && { bio: data.bio }),
     },
   });
+};
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
+
+/**
+ * Recommend mentees similar to the current user by rating, accuracy,
+ * problems-solved and geography. The returned list is sorted by similarity.
+ */
+export const getNearbyMenteesFromDB = async (
+  userId: string,
+  options?: { country?: string; city?: string; minRating?: number; limit?: number },
+): Promise<NearbyMentee[]> => {
+  const menteeRole = await prisma.role.findFirst({
+    where: { title: "Mentee" },
+    select: { id: true },
+  });
+  if (!menteeRole) return [];
+
+  const me = await prisma.profile.findUnique({
+    where: { userId },
+    select: { rating: true, accuracy: true, problemsSolved: true, country: true, city: true },
+  });
+  if (!me) return [];
+
+  const limit = options?.limit && options.limit > 0 ? Math.min(options.limit, 50) : 20;
+
+  const users = await prisma.user.findMany({
+    where: {
+      roleId: menteeRole.id,
+      id: { not: userId },
+      profile: { isNot: null },
+    },
+    select: {
+      id: true,
+      username: true,
+      profile: {
+        select: {
+          fullName: true,
+          country: true,
+          city: true,
+          organization: true,
+          rating: true,
+          accuracy: true,
+          problemsSolved: true,
+        },
+      },
+      userSkillAssessments: {
+        select: { skillLevel: { select: { title: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
+  });
+
+  const matches: NearbyMentee[] = [];
+
+  for (const user of users) {
+    const profile = user.profile;
+    if (!profile) continue;
+
+    if (
+      options?.country &&
+      profile.country?.toLowerCase() !== options.country.toLowerCase()
+    ) {
+      continue;
+    }
+    if (
+      options?.city &&
+      profile.city?.toLowerCase() !== options.city.toLowerCase()
+    ) {
+      continue;
+    }
+    if (options?.minRating != null && (profile.rating ?? 0) < options.minRating) {
+      continue;
+    }
+
+    const rating = profile.rating ?? 0;
+    const accuracy = profile.accuracy ?? 0;
+    const problemsSolved = profile.problemsSolved ?? 0;
+
+    // Normalised proximity features in [0, 1].
+    const ratingProximity =
+      rating > 0
+        ? clamp(1 - Math.abs(rating - (me.rating ?? 0)) / 2000, 0, 1)
+        : 0;
+    const accuracyProximity =
+      accuracy > 0
+        ? clamp(1 - Math.abs(accuracy - (me.accuracy ?? 0)) / 100, 0, 1)
+        : 0.5;
+    const solvedProximity =
+      problemsSolved > 0 && (me.problemsSolved ?? 0) > 0
+        ? clamp(1 - Math.abs(Math.log10(problemsSolved + 1) - Math.log10((me.problemsSolved ?? 0) + 1)) / 4, 0, 1)
+        : 0.5;
+
+    let geoBonus = 0;
+    if (me.city && profile.city && me.city.toLowerCase() === profile.city.toLowerCase()) {
+      geoBonus += 0.2;
+    }
+    if (me.country && profile.country && me.country.toLowerCase() === profile.country.toLowerCase()) {
+      geoBonus += 0.1;
+    }
+    if (me.city && profile.organization) {
+      geoBonus += 0.05;
+    }
+
+    const similarityScore = Math.round(
+      clamp(
+        40 * ratingProximity +
+          20 * accuracyProximity +
+          20 * solvedProximity +
+          20 * geoBonus,
+        0,
+        100,
+      ) * 100,
+    ) / 100;
+
+    matches.push({
+      userId: user.id,
+      username: user.username,
+      fullName: profile.fullName ?? null,
+      country: profile.country ?? null,
+      city: profile.city ?? null,
+      organization: profile.organization ?? null,
+      rating: profile.rating,
+      accuracy: profile.accuracy,
+      problemsSolved: profile.problemsSolved,
+      level: user.userSkillAssessments[0]?.skillLevel?.title ?? null,
+      similarityScore,
+    });
+  }
+
+  matches.sort((a, b) => b.similarityScore - a.similarityScore);
+  return matches.slice(0, limit);
 };

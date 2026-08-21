@@ -180,6 +180,7 @@ codepath-backend/
 | `CORS_ORIGIN`    | Allowed CORS origins         | `http://localhost:3000` |
 | `EMAIL_ADDRESS`  | SMTP sender email (Gmail)    | Required                |
 | `EMAIL_APP_PASSWORD` | Gmail App Password           | Required                |
+| `FASTAPI_BASE_URL` | URL of the companion FastAPI service | `http://127.0.0.1:8000` |
 
 ## 🔍 Troubleshooting
 
@@ -238,6 +239,15 @@ For support and questions:
 - Ensure all environment variables are properly configured
 ## 📚 API Endpoints
 
+### Authentication
+- `POST /auth/login` — Log in as mentee or admin. Body: `{ email, password }`. Returns `accessToken`.
+- `POST /auth/mentee/register` — Register a mentee. Body: `{ fullName, username, email, password, country, phone?, bio? }`. Returns `accessToken`.
+- `POST /auth/logout` — Log out. Send the `Authorization: Bearer <accessToken>` header. The client should also discard the stored token (JWTs are stateless).
+
+### Codeforces Integration
+- `POST /external-accounts/codeforces/integrate` — Link your Codeforces handle. Body: `{ handle }`. Computes your CodePath level and activates your roadmap.
+- `GET /external-accounts/codeforces/integration` — Check whether a handle is linked (`{ linked, handle, isVerified, codePathLevel }`).
+
 ### Quiz Questions
 - `POST /quiz/questions` — Create a quiz question
   - Body: `{ questionTitle: string, answer: string, score: number }`
@@ -250,3 +260,86 @@ For support and questions:
 ### Contact / Email Broadcast
 - Function: broadcasts email to all mentees using `EMAIL_ADDRESS` and `EMAIL_APP_PASSWORD`
 - Uses BCC for privacy; ensure `Mentee` role exists and users have emails.
+
+## 🤖 AI-Powered Features
+
+These features call the companion FastAPI service (`CodePath_AI_fastapi`). Start it first and set `FASTAPI_BASE_URL` (default `http://127.0.0.1:8000`) in `.env`.
+
+| Feature | Node route | Calls FastAPI |
+| --- | --- | --- |
+| Dynamic AI Roadmap | `POST /roadmaps/generate-my-roadmap` | `POST /api/roadmap/generate` |
+| Virtual Contests | `POST /contests/create` with `selection` | `POST /api/contest/select-problems` |
+| Reference Library AI curation | `POST /reference/curate` | `POST /api/reference/curate` |
+
+All three callers fall back to deterministic responses when Gemini is unreachable, so the backend still works offline.
+
+### Roadmaps (AI)
+- `POST /roadmaps/generate-my-roadmap` — Generates a personalized roadmap from the user's topics, quiz performance, Codeforces stats and skill level, then persists it as a personal roadmap.
+
+### Contests
+- `GET /contests` — List all contests
+- `GET /contests/my` — Contests the user joined
+- `POST /contests/create` — Admin. Body: `{ title, description?, durationMinutes, freezeEnabled?, freezeMinutes?, problems?: [{problemId, topicId?}] | selection?: { targetSkillTier, topics: [{id?, title}], totalProblems } }`
+- `GET /contests/:id` — Contest details including labeled problems (A, B, C...)
+- `POST /contests/:id/join` — Join a contest
+- `POST /contests/:id/start` — Start the personal virtual timer
+- `POST /contests/:id/submissions` — Body: `{ contestProblemId, verdict, programmingLanguage }`. Verdicts: `AC`, `WA`, `TLE`, `MLE`, `RE`, `CE`, `SKIPPED`. Scoring uses virtual time with a 20-minute penalty per wrong attempt (CE ignored).
+- `POST /contests/:id/finish` — Stop the timer for the user
+- `GET /contests/:id/scoreboard?final=true` — Scoreboard with freeze applied (`?final=true` for the unfrozen admin view)
+- `GET /contests/:id/my-submissions` — The user's submissions in the contest
+- `POST /contests/:id/complete` / `POST /contests/:id/cancel` / `DELETE /contests/:id` — Admin lifecycle actions
+
+### Coaches & Bookings
+- `GET /coaches` / `GET /coaches/:id` — Coach directory
+- `GET /coaches/me` / `POST /coaches/me` — View or create/update your coach profile
+- `POST /coaches/:id/bookings` — Request a booking `{ startTime, endTime, notes? }`
+- `GET /coaches/bookings/me` — My bookings as a mentee
+- `GET /coaches/bookings/coach` — My bookings as a coach
+- `PATCH /coaches/bookings/:id` — `{ status: PENDING|CONFIRMED|COMPLETED|CANCELLED, meetingUrl? }` (coach/admin; mentee may cancel their own)
+- `POST /coaches/webhook/cal` — Cal.com webhook. Verify the `x-cal-signature` header (HMAC-SHA256 of the raw body with `CAL_WEBHOOK_SECRET`) before syncing bookings.
+
+### Reference Library
+- `POST /reference` — Save a snippet `{ title, language, code, topicId?, notes?, tags?, isPublic? }`
+- `GET /reference?topicId=&search=` — List my snippets
+- `GET /reference/:id` — View a snippet (owners or public)
+- `PUT /reference/:id` / `DELETE /reference/:id` — Update/delete my snippet
+- `POST /reference/curate` — Group snippets into a weakness-ordered study sheet via FastAPI
+- `GET /reference/export/pdf` — Download all my snippets as one highlighted PDF
+- `GET /reference/export/zip` — Download a ZIP of per-snippet PDFs plus `metadata.json`
+- `GET /reference/:id/pdf` — Download one snippet as PDF
+
+### Similar-Peer Recommendation
+- `GET /users/mentees/nearby?country=&city=&minRating=&limit=` — Mentees ranked by similarity (rating, accuracy, problems solved, geography).
+
+## 🧪 Postman
+Import `postman/codepath-backend.postman_collection.json` and `postman/codepath-backend.postman_environment.json` in Postman. Login first — the `accessToken` is stored in the `token` variable automatically.
+
+## 🚀 Running Both Projects Together
+
+The Node backend calls the FastAPI service for AI features (roadmap, contests, reference curation). Start FastAPI first, then the backend.
+
+### 1. FastAPI (`CodePath_AI_fastapi`)
+
+```bash
+# Option A — Docker Compose (recommended)
+docker compose up -d --build
+
+# Option B — local Python
+python -m venv venv
+venv\Scripts\Activate.ps1        # Windows PowerShell
+source venv/bin/activate         # macOS/Linux
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+FastAPI runs at `http://127.0.0.1:8000` (Swagger UI at `/docs`).
+
+### 2. Node Backend (`codepath-backend`)
+
+```bash
+cp .env.example .env   # set DATABASE_URL, JWT_SECRET, FASTAPI_BASE_URL
+pnpm setup:dev         # start PostgreSQL + generate Prisma client + migrate
+pnpm dev
+```
+
+Backend runs at `http://localhost:3000`.

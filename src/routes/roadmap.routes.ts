@@ -20,6 +20,7 @@ import {
   getMyRoadmapCurrentFocus,
   getMyRoadmapAchievements,
   getMyRoadmapModulesWithProgress,
+  generateMyRoadmap,
 } from "../controllers/roadmap.controller";
 import { authorize } from "../middlewares/authorization";
 
@@ -27,6 +28,11 @@ const router = express.Router();
 
 // Roadmap routes (static paths before /:id)
 router.get("/", authorize(["Admin"], false), getRoadmaps);
+router.post(
+  "/generate-my-roadmap",
+  authorize(["Mentee"], false),
+  generateMyRoadmap,
+);
 router.get(
   "/mentees/me/roadmap",
   authorize(["Mentee"], false),

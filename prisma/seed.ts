@@ -1,11 +1,33 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 import * as bcrypt from "bcryptjs";
+import * as fs from "fs";
+import * as path from "path";
+import { parseCsvRows, parsePythonList } from "../src/lib/csv";
+
+function problemsetPath(): string {
+  const candidates = [
+    path.resolve(process.cwd(), "problemset.csv"),
+    path.resolve(__dirname, "../problemset.csv"),
+    path.resolve(__dirname, "../../../problemset.csv"),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  throw new Error("problemset.csv not found");
+}
 
 async function main() {
   console.log("Clearing existing data...");
 
   // Delete in reverse dependency order
+  await prisma.contestSubmission.deleteMany();
+  await prisma.contestParticipant.deleteMany();
+  await prisma.contestProblem.deleteMany();
+  await prisma.contest.deleteMany();
+  await prisma.booking.deleteMany();
+  await prisma.coach.deleteMany();
+  await prisma.solutionSnippet.deleteMany();
   await prisma.moduleProblem.deleteMany();
   await prisma.moduleResource.deleteMany();
   await prisma.userLearningProgress.deleteMany();
@@ -19,6 +41,7 @@ async function main() {
   await prisma.achievement.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.externalAccount.deleteMany();
+  await prisma.problem.deleteMany();
   await prisma.user.deleteMany();
   await prisma.contactInquery.deleteMany();
   await prisma.contactInfo.deleteMany();
@@ -238,6 +261,47 @@ async function main() {
   const topicMath = await prisma.topic.create({
     data: { title: "Math", tags: "number-theory,combinatorics", rating: "1600" },
   });
+
+  console.log("Seeding problems from problemset.csv...");
+  const csvText = fs.readFileSync(problemsetPath(), "utf-8");
+  const csvRows = parseCsvRows(csvText);
+  const problems: Array<{
+    externalProblemId: string;
+    contestId: number;
+    index: string;
+    rating: number;
+    tags: string;
+  }> = [];
+
+  for (const row of csvRows) {
+    if (!row || row.length < 3) continue;
+    const [problemId, rating, tags] = row;
+    if (!problemId || problemId === "problem_id") continue;
+
+    const match = problemId.match(/^(\d+)_([A-Z]+)$/i);
+    if (!match) continue;
+
+    const contestId = parseInt(match[1], 10);
+    const index = match[2].toUpperCase();
+    const parsedRating = parseInt(rating, 10);
+    if (Number.isNaN(contestId) || Number.isNaN(parsedRating)) continue;
+
+    problems.push({
+      externalProblemId: `${contestId}${index}`,
+      contestId,
+      index,
+      rating: parsedRating,
+      tags: JSON.stringify(parsePythonList(tags)),
+    });
+  }
+
+  // Insert in chunks to avoid very large statements.
+  const CHUNK_SIZE = 1000;
+  for (let i = 0; i < problems.length; i += CHUNK_SIZE) {
+    const chunk = problems.slice(i, i + CHUNK_SIZE);
+    await prisma.problem.createMany({ data: chunk, skipDuplicates: true });
+  }
+  console.log(`  Seeded ${problems.length} problems.`);
 
   console.log("Seeding learning paths and modules...");
   const pathBeginner = await prisma.learningPath.create({

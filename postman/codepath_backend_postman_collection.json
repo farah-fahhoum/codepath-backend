@@ -1,0 +1,5024 @@
+{
+  "info": {
+    "_postman_id": "be7eba77-1689-4012-ac1f-102d26edb6b1",
+    "name": "CodePath Backend + FastAPI (Full API Suite)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Merged collection: Node/Express backend endpoints plus the standalone Python FastAPI microservice endpoints, all in one collection."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "fastApiBaseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "adminId",
+      "value": ""
+    },
+    {
+      "key": "menteeId",
+      "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": ""
+    },
+    {
+      "key": "inquiryId",
+      "value": ""
+    },
+    {
+      "key": "roleId",
+      "value": ""
+    },
+    {
+      "key": "skillLevelId",
+      "value": ""
+    },
+    {
+      "key": "topicId",
+      "value": ""
+    },
+    {
+      "key": "favouriteId",
+      "value": ""
+    },
+    {
+      "key": "roadmapId",
+      "value": ""
+    },
+    {
+      "key": "moduleId",
+      "value": ""
+    },
+    {
+      "key": "resourceId",
+      "value": ""
+    },
+    {
+      "key": "roadmapProblemId",
+      "value": ""
+    },
+    {
+      "key": "contestId",
+      "value": ""
+    },
+    {
+      "key": "contestProblemId",
+      "value": ""
+    },
+    {
+      "key": "coachId",
+      "value": ""
+    },
+    {
+      "key": "bookingId",
+      "value": ""
+    },
+    {
+      "key": "snippetId",
+      "value": ""
+    },
+    {
+      "key": "cfHandle",
+      "value": "tourist"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mentee@codepath.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "description": "Login as mentee or admin. The accessToken is stored in the {{token}} environment variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Stores accessToken in {{token}}\", () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.data).to.have.property(\"accessToken\");",
+                  "  pm.environment.set(\"token\", json.data.accessToken);",
+                  "});",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logs out the current session. The client should discard the stored token afterwards."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Mentee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/mentee/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "mentee",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"New Mentee User\",\n  \"username\": \"newmentee123\",\n  \"email\": \"newmentee@codepath.com\",\n  \"password\": \"password123\",\n  \"country\": \"Pakistan\"\n}"
+            },
+            "description": "Create a mentee account. Full name/username must be >= 6 chars, password >= 8 chars."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Stores accessToken in {{token}}\", () => {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.accessToken) { pm.environment.set(\"token\", json.data.accessToken); }",
+                  "});",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Admins",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/admins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "admins"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"adminId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/admins/{{adminId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "admins",
+                "{{adminId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/admins/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "admins",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newadmin01\",\n  \"email\": \"newadmin@codepath.com\",\n  \"password\": \"password123\",\n  \"roleId\": 1\n}"
+            },
+            "description": "Requires a valid roleId (see GET /users/roles)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Admin (self)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/admins/update/{{adminId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "admins",
+                "update",
+                "{{adminId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newadmin01-updated\"\n}"
+            },
+            "description": "An admin may only update their own record (token user id must match the :id)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Admin",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/admins/delete/{{adminId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "admins",
+                "delete",
+                "{{adminId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Mentees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees?name=&level=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": ""
+                },
+                {
+                  "key": "level",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Optional query filters: name, email, level."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"menteeId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Mentee",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/{{menteeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "{{menteeId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/profile/view",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "profile",
+                "view"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/profile/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "profile",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Updated Mentee Name\",\n  \"country\": \"Pakistan\",\n  \"bio\": \"Competitive programmer.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update My Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/password/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "password",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\",\n  \"confirmNewPassword\": \"newpassword123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set My Skill Level",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/skill-level",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "skill-level"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillLevelId\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nearby Mentees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/mentees/nearby?limit=10&minRating=1200",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "mentees",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "minRating",
+                  "value": "1200"
+                }
+              ]
+            },
+            "description": "Similar-peer recommendations. Optional filters: country, city, minRating, limit."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "roles"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"roleId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Role",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/roles/{{roleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "roles",
+                "{{roleId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contact",
+      "item": [
+        {
+          "name": "Get Contact Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contact/info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "info"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Contact Info",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact/info/update",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "info",
+                "update"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"support@codepath.com\",\n  \"phone\": \"+92 300 0000000\",\n  \"facebook\": \"codepath\",\n  \"instagram\": \"codepath\",\n  \"youtube\": \"codepath\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Contact Inquiries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact/inquiries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "inquiries"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"inquiryId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Contact Inquiry",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact/inquiries/{{inquiryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "inquiries",
+                "{{inquiryId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send Inquiry (public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact/inquiries/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "inquiries",
+                "send"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"title\": \"Question about contests\",\n  \"message\": \"How do I join a virtual contest?\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mass Email to Mentees",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact/send/mentees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact",
+                "send",
+                "mentees"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailTitle\": \"Weekly CodePath Update\",\n  \"emailContent\": \"Here is what is new this week...\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Quiz",
+      "item": [
+        {
+          "name": "List Quiz Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/questions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "questions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"questionId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Quiz Question",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/questions/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "questions",
+                "{{questionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Quiz Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/questions/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "questions",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionTitle\": \"What is the time complexity of binary search?\",\n  \"answer\": \"O(log n)\",\n  \"score\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Quiz Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/questions/update/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "questions",
+                "update",
+                "{{questionId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 15\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Quiz Question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/questions/delete/{{questionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "questions",
+                "delete",
+                "{{questionId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Quiz (Random)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz?numberofQuestions=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz"
+              ],
+              "query": [
+                {
+                  "key": "numberofQuestions",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Quiz (All Questions)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "all"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Quiz (AI version)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/start?numberofQuestions=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "start"
+              ],
+              "query": [
+                {
+                  "key": "numberofQuestions",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Proxies GET /quiz/start on the FastAPI service."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Quiz (AI)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"question_id\": 1, \"selected_option\": 2 },\n    { \"question_id\": 2, \"selected_option\": 0 }\n  ]\n}"
+            },
+            "description": "Proxies POST /quiz/submit to FastAPI and persists a UserSkillAssessment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Quiz (DB)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quiz/submit-db",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "submit-db"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"questionId\": 1, \"userAnswer\": \"O(log n)\" },\n    { \"questionId\": 2, \"userAnswer\": \"O(n)\" }\n  ]\n}"
+            },
+            "description": "Scores text answers against stored question answers and assigns a skill level."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Problems",
+      "item": [
+        {
+          "name": "List Problems",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/problems?page=1&limit=20&minRating=&tag=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "minRating",
+                  "value": ""
+                },
+                {
+                  "key": "tag",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Fetches the Codeforces problemset and paginates locally. Optional filters: minRating, tag."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Problem",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/problems/1/A",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "1",
+                "A"
+              ]
+            },
+            "description": "Scrapes a problem statement. contestId and index are path params."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Run Code (Piston)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "run"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"#include <iostream>\\nint main() { std::cout << \\\"hello\\\"; return 0; }\\n\",\n  \"language\": \"cpp\",\n  \"stdin\": \"\"\n}"
+            },
+            "description": "language must be cpp | java | python | javascript."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Favourite Problems",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/favourites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "favourites"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"favouriteId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Problem To Favourites",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/favourites/add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "favourites",
+                "add"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalProblemId\": \"1234A\",\n  \"platform\": \"Codeforces\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Problem From Favourites",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/favourites/remove/{{favouriteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "favourites",
+                "remove",
+                "{{favouriteId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Problem",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "submit"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalSubmissionId\": \"cf-sub-12345\",\n  \"problemId\": \"1234A\",\n  \"platform\": \"codeforces\",\n  \"submissionTime\": 1723456789,\n  \"verdict\": \"OK\",\n  \"executionTime\": 120,\n  \"memoryUsed\": 20480,\n  \"programmingLanguage\": \"cpp\"\n}"
+            },
+            "description": "Requires a linked external account. Verdict OK/AC/Accepted counts as solved."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sync Submission From Codeforces",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/problems/sync-submission",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "problems",
+                "sync-submission"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contestId\": 1234,\n  \"index\": \"A\"\n}"
+            },
+            "description": "Pulls the user's latest Codeforces submission for the problem and records it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chatbot",
+      "item": [
+        {
+          "name": "Ask Chatbot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chatbot/ask",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chatbot",
+                "ask"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I get better at dynamic programming?\"\n}"
+            },
+            "description": "Proxies POST /api/chat to the FastAPI service."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Admin Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/statistics/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "admin"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mentee Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/statistics/mentee",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "mentee"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mentee Activity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/statistics/mentee/activity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "mentee",
+                "activity"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mentee Growth",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/statistics/mentee/growth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statistics",
+                "mentee",
+                "growth"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Roadmaps",
+      "item": [
+        {
+          "name": "List Roadmaps (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"roadmapId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generate My Roadmap (AI)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/generate-my-roadmap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "generate-my-roadmap"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Builds and persists a personal roadmap from quiz performance + Codeforces stats via FastAPI."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Roadmap",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/mentees/me/roadmap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "mentees",
+                "me",
+                "roadmap"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Roadmap Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/my-roadmap/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "my-roadmap",
+                "summary"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Current Focus",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/my-roadmap/current-focus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "my-roadmap",
+                "current-focus"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Achievements",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/my-roadmap/achievements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "my-roadmap",
+                "achievements"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Modules With Progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/my-roadmap/modules-with-progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "my-roadmap",
+                "modules-with-progress"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Roadmap",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/{{roadmapId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "{{roadmapId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Roadmap (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Beginner to Intermediate\",\n  \"description\": \"Foundations roadmap\",\n  \"targetSkillLevelId\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"roadmap\"] != null && json.data[\"json\"][\"roadmap\"][\"id\"] != null) { pm.environment.set(\"roadmapId\", json.data[\"json\"][\"roadmap\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Roadmap (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/update/{{roadmapId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "update",
+                "{{roadmapId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Beginner to Intermediate (Updated)\",\n  \"description\": \"Updated description\",\n  \"targetSkillLevelId\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Roadmap (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/delete/{{roadmapId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "delete",
+                "{{roadmapId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Module (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/create/modules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "create",
+                "modules"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"learningPathId\": 1,\n  \"title\": \"Arrays & Hashing\",\n  \"description\": \"Core array patterns\",\n  \"topicId\": 1,\n  \"moduleOrder\": 1,\n  \"estimatedHours\": 8\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"module\"] != null && json.data[\"json\"][\"module\"][\"id\"] != null) { pm.environment.set(\"moduleId\", json.data[\"json\"][\"module\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Module (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/update/modules/{{moduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "update",
+                "modules",
+                "{{moduleId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estimatedHours\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Module (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/delete/modules/{{moduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "delete",
+                "modules",
+                "{{moduleId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Topic Performance Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/modules/topic/mentee-performance-overview?topic=Arrays",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "modules",
+                "topic",
+                "mentee-performance-overview"
+              ],
+              "query": [
+                {
+                  "key": "topic",
+                  "value": "Arrays"
+                }
+              ]
+            },
+            "description": "Combines FastAPI topic performance + AI summary for the logged-in mentee's Codeforces handle."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Resource (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/create/resources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "create",
+                "resources"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pathModuleId\": 1,\n  \"resourceType\": \"video\",\n  \"title\": \"Two Pointers Explained\",\n  \"description\": \"Video walkthrough\",\n  \"url\": \"https://youtube.com/watch?v=xyz\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"resource\"] != null && json.data[\"json\"][\"resource\"][\"id\"] != null) { pm.environment.set(\"resourceId\", json.data[\"json\"][\"resource\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Resource (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/update/resources/{{resourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "update",
+                "resources",
+                "{{resourceId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Pointers Explained (Updated)\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Resource (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/delete/resources/{{resourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "delete",
+                "resources",
+                "{{resourceId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Roadmap Problem (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/create/problems",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "create",
+                "problems"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pathModuleId\": 1,\n  \"externalProblemId\": \"1234A\",\n  \"platform\": \"Codeforces\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"problem\"] != null && json.data[\"json\"][\"problem\"][\"id\"] != null) { pm.environment.set(\"roadmapProblemId\", json.data[\"json\"][\"problem\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Roadmap Problem (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/update/problems/{{roadmapProblemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "update",
+                "problems",
+                "{{roadmapProblemId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"externalProblemId\": \"1234B\",\n  \"platform\": \"Codeforces\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Roadmap Problem (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/roadmaps/delete/problems/{{roadmapProblemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "roadmaps",
+                "delete",
+                "problems",
+                "{{roadmapProblemId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Skill Levels",
+      "item": [
+        {
+          "name": "List Skill Levels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/skill-levels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skill-levels"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"skillLevelId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Skill Level",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/skill-levels/{{skillLevelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "skill-levels",
+                "{{skillLevelId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Topics",
+      "item": [
+        {
+          "name": "List Topics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/topics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "topics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"topicId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Topic",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/topics/{{topicId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "topics",
+                "{{topicId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Topics By Module",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/topics/module/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "topics",
+                "module",
+                "1"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "External Accounts",
+      "item": [
+        {
+          "name": "Integrate Codeforces",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/external-accounts/codeforces/integrate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-accounts",
+                "codeforces",
+                "integrate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"handle\": \"tourist\"\n}"
+            },
+            "description": "Links the mentee's Codeforces handle and derives a CodePath level."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Codeforces Integration Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/external-accounts/codeforces/integration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-accounts",
+                "codeforces",
+                "integration"
+              ]
+            },
+            "description": "Returns whether the mentee has a linked Codeforces handle ({ linked, handle, isVerified, codePathLevel })."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contests",
+      "item": [
+        {
+          "name": "List Contests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests?status=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Optional query filter: status (DRAFT, SCHEDULED, ONGOING, COMPLETED, CANCELLED)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Contests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "my"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Contest (AI Selection)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My First Virtual Contest\",\n  \"description\": \"Practice contest built from my weak topics\",\n  \"durationMinutes\": 120,\n  \"freezeEnabled\": true,\n  \"freezeMinutes\": 10,\n  \"selection\": {\n    \"targetSkillTier\": \"Intermediate\",\n    \"topics\": [\n      { \"id\": 1, \"title\": \"Arrays\" },\n      { \"id\": 2, \"title\": \"Strings\" }\n    ],\n    \"totalProblems\": 12\n  }\n}"
+            },
+            "description": "Admin: 'selection' asks FastAPI to pick weakness-based criteria. The created contestId is stored in {{contestId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"contestId\"] != null) { pm.environment.set(\"contestId\", json.data[\"json\"][\"contestId\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Contest (Manual Problems)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "create"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Manual Problem Contest\",\n  \"durationMinutes\": 90,\n  \"freezeEnabled\": false,\n  \"problems\": [\n    { \"problemId\": 1, \"topicId\": 1 },\n    { \"problemId\": 2, \"topicId\": 1 },\n    { \"problemId\": 3, \"topicId\": 2 }\n  ]\n}"
+            },
+            "description": "Admin: explicit problem list instead of AI selection."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"contestId\"] != null) { pm.environment.set(\"contestId\", json.data[\"json\"][\"contestId\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Contest",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}"
+              ]
+            },
+            "description": "Stores the first contestProblem.id in {{contestProblemId}} for submissions."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"problems\"] != null && json.data[\"json\"][\"problems\"][0] != null && json.data[\"json\"][\"problems\"][0][\"id\"] != null) { pm.environment.set(\"contestProblemId\", json.data[\"json\"][\"problems\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Join Contest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "join"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Contest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "start"
+              ]
+            },
+            "description": "Host/admin only. Sets status to ONGOING."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Solution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "submissions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contestProblemId\": \"{{contestProblemId}}\",\n  \"verdict\": \"AC\",\n  \"programmingLanguage\": \"cpp\"\n}"
+            },
+            "description": "Verdicts: AC, WA, TLE, MLE, RE, CE, SKIPPED. Requires joining the contest first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Finish Contest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/finish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "finish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Scoreboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/scoreboard?final=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "scoreboard"
+              ],
+              "query": [
+                {
+                  "key": "final",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "final=true shows the unfrozen admin view (admin only)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Submissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/my-submissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "my-submissions"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Contest (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "complete"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Contest (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}",
+                "cancel"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Contest (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contests/{{contestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contests",
+                "{{contestId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Coaches",
+      "item": [
+        {
+          "name": "List Coaches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches?available=true&specialty=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches"
+              ],
+              "query": [
+                {
+                  "key": "available",
+                  "value": "true"
+                },
+                {
+                  "key": "specialty",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"coachId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Coach Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create / Update My Coach Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"specialty\": \"Competitive Programming\",\n  \"bio\": \"ICPC regional finalist helping mentees improve their problem solving.\",\n  \"hourlyRate\": 30,\n  \"isAvailable\": true,\n  \"bookingLink\": \"https://cal.com/my-coach-link\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"coach\"] != null && json.data[\"json\"][\"coach\"][\"id\"] != null) { pm.environment.set(\"coachId\", json.data[\"json\"][\"coach\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Coach By Id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/{{coachId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "{{coachId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Booking Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/{{coachId}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "{{coachId}}",
+                "bookings"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startTime\": \"2030-01-20T10:00:00Z\",\n  \"endTime\": \"2030-01-20T10:30:00Z\",\n  \"notes\": \"Want to review greedy problems.\"\n}"
+            },
+            "description": "startTime must be a future ISO date and before endTime. Stores booking.id in {{bookingId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"booking\"] != null && json.data[\"json\"][\"booking\"][\"id\"] != null) { pm.environment.set(\"bookingId\", json.data[\"json\"][\"booking\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Bookings (as Mentee)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/bookings/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "bookings",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"bookingId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Bookings (as Coach)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/bookings/coach",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "bookings",
+                "coach"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"bookingId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Booking Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/bookings/{{bookingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "bookings",
+                "{{bookingId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\",\n  \"meetingUrl\": \"https://meet.google.com/xyz\"\n}"
+            },
+            "description": "status must be one of PENDING | CONFIRMED | COMPLETED | CANCELLED. Coach/Admin manage; mentee may cancel."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cal.com Webhook (public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-cal-signature",
+                "value": "<hmac-sha256-of-body-with-CAL_WEBHOOK_SECRET>"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/coaches/webhook/cal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "coaches",
+                "webhook",
+                "cal"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"triggerEvent\": \"BOOKING_CREATED\",\n  \"payload\": {\n    \"uid\": \"sample-cal-event-uid\",\n    \"startTime\": \"2030-01-20T10:00:00Z\",\n    \"endTime\": \"2030-01-20T10:30:00Z\",\n    \"organizer\": { \"email\": \"coach@codepath.com\" },\n    \"attendees\": [{ \"email\": \"mentee@codepath.com\" }]\n  }\n}"
+            },
+            "description": "Production signs the raw body with x-cal-signature (HMAC-SHA256 of CAL_WEBHOOK_SECRET). Real calls without it return 401."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 (or 401 without a valid signature)\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 401]); });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reference Library",
+      "item": [
+        {
+          "name": "Create Snippet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Pointer Pattern\",\n  \"language\": \"cpp\",\n  \"code\": \"int i = 0, j = n - 1;\\nwhile (i < j) { ... }\\n\",\n  \"topicId\": 1,\n  \"notes\": \"Common for sorted-array two-sum style problems.\",\n  \"tags\": \"two-pointers,arrays\",\n  \"isPublic\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][\"snippet\"] != null && json.data[\"json\"][\"snippet\"][\"id\"] != null) { pm.environment.set(\"snippetId\", json.data[\"json\"][\"snippet\"][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My Snippets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference?search=&topicId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "topicId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "if (json != null && json.data != null && json.data[\"json\"] != null && json.data[\"json\"][0] != null && json.data[\"json\"][0][\"id\"] != null) { pm.environment.set(\"snippetId\", json.data[\"json\"][0][\"id\"]); }",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Snippet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/{{snippetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "{{snippetId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Snippet",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/{{snippetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "{{snippetId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Two Pointer Pattern (Updated)\",\n  \"isPublic\": true\n}"
+            },
+            "description": "Partial update - at least one field required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Snippet",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/{{snippetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "{{snippetId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Curate Snippets (AI)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/curate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "curate"
+              ]
+            },
+            "description": "Sends saved snippets + performance to FastAPI and returns a weakness-ordered study sheet."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Single Snippet PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/{{snippetId}}/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "{{snippetId}}",
+                "pdf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200, 404 or 503\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 404, 503]); });",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test(\"Response is a PDF\", () => { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/pdf\"); });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export All Snippets PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/export/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "export",
+                "pdf"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200, 404 or 503\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 404, 503]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export All Snippets ZIP",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reference/export/zip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reference",
+                "export",
+                "zip"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 200 or 404\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FastAPI (direct)",
+      "item": [
+        {
+          "name": "Quiz Start",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fastApiBaseUrl}}/quiz/start?limit=5",
+              "host": [
+                "{{fastApiBaseUrl}}"
+              ],
+              "path": [
+                "quiz",
+                "start"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Roadmap Generate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fastApiBaseUrl}}/api/roadmap/generate",
+              "host": [
+                "{{fastApiBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roadmap",
+                "generate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"u1\",\n  \"topics\": [\n    { \"id\": 1, \"title\": \"Arrays\" },\n    { \"id\": 2, \"title\": \"Strings\" },\n    { \"id\": 3, \"title\": \"Dynamic Programming\" }\n  ],\n  \"quizPerformance\": [],\n  \"codeforcesStats\": { \"rating\": 1400, \"tier\": \"Intermediate\" }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contest Select Problems",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fastApiBaseUrl}}/api/contest/select-problems",
+              "host": [
+                "{{fastApiBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "contest",
+                "select-problems"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"u1\",\n  \"targetSkillTier\": \"Intermediate\",\n  \"topics\": [\n    { \"id\": 1, \"title\": \"Arrays\" },\n    { \"id\": 2, \"title\": \"Strings\" }\n  ],\n  \"totalProblems\": 12\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reference Curate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{fastApiBaseUrl}}/api/reference/curate",
+              "host": [
+                "{{fastApiBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reference",
+                "curate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"u1\",\n  \"snippets\": [\n    { \"id\": \"a1\", \"title\": \"Two pointers\", \"topicId\": 1, \"topicTitle\": \"Arrays\", \"language\": \"cpp\" }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 201, 202, 204]); });",
+                  "pm.test(\"Body is valid JSON\", () => { pm.response.to.be.json; });",
+                  "pm.test(\"Standard envelope {success, message, data}\", () => { const j = pm.response.json(); pm.expect(j).to.have.property(\"success\").that.is.a(\"boolean\"); pm.expect(j).to.have.property(\"message\").that.is.a(\"string\"); pm.expect(j).to.have.property(\"data\"); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FastAPI Microservice (Full)",
+      "description": "Full endpoint set from the standalone Python FastAPI service collection.",
+      "item": [
+        {
+          "name": "Quiz",
+          "item": [
+            {
+              "name": "GET /quiz/start",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/quiz/start?limit=5",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "quiz",
+                    "start"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "5"
+                    }
+                  ]
+                },
+                "description": "Returns a random set of quiz questions with options."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Body is a non-empty array\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  const body = pm.response.json();",
+                      "  pm.expect(body).to.be.an(\"array\").that.is.not.empty;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST /quiz/submit",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"answers\": [\n    { \"question_id\": 1, \"selected_option\": 2 },\n    { \"question_id\": 2, \"selected_option\": 0 }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/quiz/submit",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "quiz",
+                    "submit"
+                  ]
+                },
+                "description": "Validates answers, returns accuracy, topic breakdown, level and an AI-style insight."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has accuracy + level\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  const body = pm.response.json();",
+                      "  pm.expect(body).to.have.property(\"accuracy\");",
+                      "  pm.expect(body).to.have.property(\"level\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dashboard (Codeforces)",
+          "item": [
+            {
+              "name": "GET /dashboard/user/:handle",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/dashboard/user/{{cfHandle}}",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "user",
+                    "{{cfHandle}}"
+                  ]
+                },
+                "description": "User rating, tier, rank from Codeforces. Returns 404 when the handle does not exist."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200 or 404\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });",
+                      "if (pm.response.code === 200) {",
+                      "  pm.test(\"User payload has rating + tier\", () => {",
+                      "    pm.response.to.be.json;",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body).to.have.property(\"handle\");",
+                      "    pm.expect(body).to.have.property(\"rating\");",
+                      "    pm.expect(body).to.have.property(\"tier\");",
+                      "  });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /dashboard/radar/:handle",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/dashboard/radar/{{cfHandle}}",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "radar",
+                    "{{cfHandle}}"
+                  ]
+                },
+                "description": "Top 6 topic strengths as a radar-style map."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has top_topics\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  pm.expect(pm.response.json()).to.have.property(\"top_topics\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /dashboard/ai/:handle",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/dashboard/ai/{{cfHandle}}",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "dashboard",
+                    "ai",
+                    "{{cfHandle}}"
+                  ]
+                },
+                "description": "AI-generated insight. Falls back to a deterministic message when Gemini is unreachable."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has ai_insight\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  pm.expect(pm.response.json()).to.have.property(\"ai_insight\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Topic Intelligence",
+          "item": [
+            {
+              "name": "GET /topic/:topic_name",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/topic/Arrays?user_handle={{cfHandle}}",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "topic",
+                    "Arrays"
+                  ],
+                  "query": [
+                    {
+                      "key": "user_handle",
+                      "value": "{{cfHandle}}"
+                    }
+                  ]
+                },
+                "description": "Accuracy and level for a topic based on Codeforces submissions. Unknown topics return 404."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 200 or 404\", () => { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });",
+                      "if (pm.response.code === 200) {",
+                      "  pm.test(\"Topic payload is complete\", () => {",
+                      "    pm.response.to.be.json;",
+                      "    const body = pm.response.json();",
+                      "    pm.expect(body).to.have.property(\"topic\");",
+                      "    pm.expect(body).to.have.property(\"accuracy\");",
+                      "    pm.expect(body).to.have.property(\"level\");",
+                      "  });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /topic/:topic_name/ai-summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/topic/Dynamic%20Programming/ai-summary?user_handle={{cfHandle}}",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "topic",
+                    "Dynamic Programming",
+                    "ai-summary"
+                  ],
+                  "query": [
+                    {
+                      "key": "user_handle",
+                      "value": "{{cfHandle}}"
+                    }
+                  ]
+                },
+                "description": "Per-subskill performance + Gemini insights for a topic."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has performance + ai_insights\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  const body = pm.response.json();",
+                      "  pm.expect(body).to.have.property(\"performance\");",
+                      "  pm.expect(body).to.have.property(\"ai_insights\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Chatbot",
+          "item": [
+            {
+              "name": "POST /api/chat",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"How do I get better at dynamic programming?\"\n}"
+                },
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/api/chat",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "chat"
+                  ]
+                },
+                "description": "Sends a competitive programming question to Gemini and returns a reply."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has reply\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  pm.expect(pm.response.json()).to.have.property(\"reply\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Roadmap",
+          "item": [
+            {
+              "name": "POST /api/roadmap/generate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"u1\",\n  \"topics\": [\n    { \"id\": 1, \"title\": \"Arrays\" },\n    { \"id\": 2, \"title\": \"Strings\" },\n    { \"id\": 3, \"title\": \"Dynamic Programming\" },\n    { \"id\": 4, \"title\": \"Greedy\" }\n  ],\n  \"skillAssessments\": [],\n  \"quizPerformance\": [],\n  \"codeforcesStats\": {\n    \"rating\": 1400,\n    \"tier\": \"Intermediate\",\n    \"problemsSolved\": 120,\n    \"accuracy\": 62,\n    \"topicBreakdown\": []\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/api/roadmap/generate",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "roadmap",
+                    "generate"
+                  ]
+                },
+                "description": "Returns weakness-ranked roadmap modules. Uses Gemini strict-JSON when a valid GEMINI_API_KEY is set, otherwise a deterministic fallback."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has modules\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  pm.expect(pm.response.json()).to.have.property(\"modules\");",
+                      "  pm.expect(pm.response.json().modules).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Contest",
+          "item": [
+            {
+              "name": "POST /api/contest/select-problems",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"u1\",\n  \"targetSkillTier\": \"Intermediate\",\n  \"topics\": [\n    { \"id\": 1, \"title\": \"Arrays\" },\n    { \"id\": 2, \"title\": \"Strings\" },\n    { \"id\": 3, \"title\": \"Greedy\" }\n  ],\n  \"quizPerformance\": [\n    { \"topic\": \"Arrays\", \"attempts\": 10, \"solved\": 4 },\n    { \"topic\": \"Strings\", \"attempts\": 8, \"solved\": 5 }\n  ],\n  \"totalProblems\": 12\n}"
+                },
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/api/contest/select-problems",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "contest",
+                    "select-problems"
+                  ]
+                },
+                "description": "Problem criteria: weakest topics get the most problems and sit at the easier end of an ascending difficulty curve."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has criteria\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  const body = pm.response.json();",
+                      "  pm.expect(body).to.have.property(\"criteria\");",
+                      "  pm.expect(body).to.have.property(\"totalProblems\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Reference",
+          "item": [
+            {
+              "name": "POST /api/reference/curate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"u1\",\n  \"snippets\": [\n    { \"id\": \"a1\", \"title\": \"Two Pointer Pattern\", \"topicId\": 1, \"topicTitle\": \"Arrays\", \"language\": \"cpp\", \"notesPreview\": \"for sorted-array two-sum\" },\n    { \"id\": \"a2\", \"title\": \"Sliding Window\", \"topicId\": 1, \"topicTitle\": \"Arrays\", \"language\": \"cpp\" },\n    { \"id\": \"b1\", \"title\": \"KMP\", \"topicId\": 2, \"topicTitle\": \"Strings\", \"language\": \"cpp\" }\n  ],\n  \"quizPerformance\": [],\n  \"codeforcesStats\": null\n}"
+                },
+                "url": {
+                  "raw": "{{fastApiBaseUrl}}/api/reference/curate",
+                  "host": [
+                    "{{fastApiBaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "reference",
+                    "curate"
+                  ]
+                },
+                "description": "Groups snippets into a weakness-ordered study sheet with per-topic intros (Gemini when available, templated otherwise)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status is 2xx\", () => { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                      "pm.test(\"Response has sections\", () => {",
+                      "  pm.response.to.be.json;",
+                      "  pm.expect(pm.response.json()).to.have.property(\"sections\");",
+                      "  pm.expect(pm.response.json().sections).to.be.an(\"array\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

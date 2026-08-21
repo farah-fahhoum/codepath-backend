@@ -28,6 +28,12 @@ model User {
   userSkillAssessments UserSkillAssessment[]
   learningProgresses UserLearningProgress[]
   userAchievements UserAchievement[]
+  ownedLearningPaths LearningPath[]
+  coachProfile Coach?
+  menteeBookings Booking[] @relation("MenteeBookings")
+  contestsCreated Contest[]
+  contestParticipations ContestParticipant[]
+  solutionSnippets SolutionSnippet[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -37,6 +43,8 @@ model Profile {
   fullName String
   phone String?
   country String
+  city String?
+  organization String?
   bio String?
   rating Int?
   problemsSolved Int?
@@ -56,6 +64,8 @@ model ExternalAccount {
   isVerified Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform])
 }
 
 model ContactInfo {
@@ -157,9 +167,11 @@ model LearningPath {
   targetSkillLevelId Int
   title String
   description String
+  ownerUserId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   skillLevel SkillLevel @relation(fields: [targetSkillLevelId], references: [id])
+  owner User? @relation(fields: [ownerUserId], references: [id])
   pathModules PathModule[]
   learningProgresses UserLearningProgress[]
 }
@@ -214,6 +226,8 @@ model Topic {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   pathModules PathModule[]
+  snippets SolutionSnippet[]
+  contestProblems ContestProblem[]
 }
 
 model UserLearningProgress {
@@ -256,4 +270,148 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id])
 
   @@unique([userId, achievementId])
+}
+
+model Problem {
+  id Int @id @default(autoincrement())
+  externalProblemId String @unique
+  contestId Int
+  index String
+  rating Int
+  tags String
+  title String?
+  platform String @default("Codeforces")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contestProblems ContestProblem[]
+}
+
+enum ContestStatus {
+  DRAFT
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model Contest {
+  id String @id @default(cuid())
+  title String
+  description String?
+  type String @default("VIRTUAL")
+  status ContestStatus @default(DRAFT)
+  durationMinutes Int
+  freezeEnabled Boolean @default(true)
+  freezeMinutes Int?
+  virtualStartTime DateTime?
+  createdByUserId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy User @relation(fields: [createdByUserId], references: [id])
+  problems ContestProblem[]
+  participants ContestParticipant[]
+  submissions ContestSubmission[]
+}
+
+model ContestProblem {
+  id String @id @default(cuid())
+  contestId String
+  problemId Int
+  label String
+  order Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contest Contest @relation(fields: [contestId], references: [id])
+  problem Problem @relation(fields: [problemId], references: [id])
+  topicId Int?
+  topic Topic? @relation(fields: [topicId], references: [id])
+  submissions ContestSubmission[]
+  @@unique([contestId, label])
+}
+
+model ContestParticipant {
+  id String @id @default(cuid())
+  contestId String
+  userId String
+  virtualStartTime DateTime?
+  penalty Int @default(0)
+  solvedCount Int @default(0)
+  rank Int?
+  finished Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contest Contest @relation(fields: [contestId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  submissions ContestSubmission[]
+  @@unique([contestId, userId])
+}
+
+model ContestSubmission {
+  id String @id @default(cuid())
+  contestId String
+  participantId String
+  contestProblemId String
+  verdict String
+  submissionTimeMinutes Int
+  programmingLanguage String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contest Contest @relation(fields: [contestId], references: [id])
+  participant ContestParticipant @relation(fields: [participantId], references: [id])
+  contestProblem ContestProblem @relation(fields: [contestProblemId], references: [id])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model Coach {
+  id String @id @default(cuid())
+  userId String
+  specialty String
+  bio String?
+  hourlyRate Decimal? @db.Decimal(10, 2)
+  isAvailable Boolean @default(true)
+  bookingLink String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+  bookings Booking[]
+  @@unique([userId])
+}
+
+model Booking {
+  id String @id @default(cuid())
+  coachId String
+  menteeId String
+  startTime DateTime
+  endTime DateTime
+  status BookingStatus @default(PENDING)
+  meetingUrl String?
+  notes String?
+  calEventUid String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  coach Coach @relation(fields: [coachId], references: [id])
+  mentee User @relation("MenteeBookings", fields: [menteeId], references: [id])
+  @@unique([coachId, startTime])
+}
+
+model SolutionSnippet {
+  id String @id @default(cuid())
+  userId String
+  topicId Int?
+  title String
+  language String
+  code String
+  notes String?
+  tags String?
+  isPublic Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+  topic Topic? @relation(fields: [topicId], references: [id])
 }

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Joi from "joi";
 import axios from "axios";
+import { ok } from "../lib/response";
 import { prisma } from "../lib/prisma";
 import {
   addQuizQuestionToDB,
@@ -20,7 +21,7 @@ import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.re
 export const getQuizQuestions = async (_req: Request, res: Response) => {
   try {
     const questions = await getQuizQuestionsFromDB();
-    return res.status(200).json(questions);
+    return res.status(200).json(ok(questions));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -35,7 +36,7 @@ export const getQuizQuestion = async (req: Request, res: Response) => {
     const question = await getQuizQuestionByIdFromDB(value.id);
     if (!question)
       return res.status(404).json({ message: "Invalid question id" });
-    return res.status(200).json(question);
+    return res.status(200).json(ok(question));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -222,7 +223,8 @@ export const submitQuiz = async (req: Request, res: Response) => {
         answers,
       });
 
-      const { level, accuracy } = response.data;
+      const result = response.data.data ?? response.data;
+      const { level, accuracy } = result;
 
       // Get skill level ID from database based on level title
       const skillLevel = await getSkillLevelByTitle(level);
@@ -244,8 +246,8 @@ export const submitQuiz = async (req: Request, res: Response) => {
 
       // Return the response from FastAPI
       return res.status(200).json({
-        MenteeLevel: response.data.level,
-        ResultAccuracy: response.data.accuracy,
+        MenteeLevel: result.level,
+        ResultAccuracy: result.accuracy,
       });
     } catch (axiosError) {
       if (axios.isAxiosError(axiosError)) {

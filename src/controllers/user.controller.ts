@@ -22,6 +22,7 @@ import {
   updateAdminInDB,
   updateMenteeProfileInDB,
   updateUserPasswordInDB,
+  getNearbyMenteesFromDB,
 } from "../repositories/user.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 import {
@@ -66,6 +67,30 @@ export const adminAndMenteeLogin = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (
+      !authHeader ||
+      !authHeader.startsWith("Bearer") ||
+      !authHeader.split(" ")[1]
+    ) {
+      return res.status(422).json({ message: "Provide a token" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    try {
+      jwt.verify(token, process.env.JWT_SECRET as string);
+    } catch {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
 
@@ -407,5 +432,32 @@ export const setMenteeSkillLevel = async (req: Request, res: Response) => {
     });
   } catch (err) {
     return res.status(500).json({ message: "Internal Server Error", error: err });
+  }
+};
+
+export const getNearbyUsers = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    const querySchema = Joi.object({
+      country: Joi.string().optional(),
+      city: Joi.string().optional(),
+      minRating: Joi.number().min(0).optional(),
+      limit: Joi.number().integer().min(1).max(50).optional(),
+    });
+    const { value, error } = querySchema.validate(req.query);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const mentees = await getNearbyMenteesFromDB(userId, {
+      country: value.country,
+      city: value.city,
+      minRating: value.minRating,
+      limit: value.limit,
+    });
+
+    return res.status(200).json(mentees);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };

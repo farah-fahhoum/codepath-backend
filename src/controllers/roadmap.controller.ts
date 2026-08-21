@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import axios from "axios";
+import { ok } from "../lib/response";
 import {
   getRoadmapsFromDB,
   getRoadmapByIdFromDB,
@@ -21,11 +22,21 @@ import {
   getUserAchievementsFromDB,
 } from "../repositories/roadmap.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
+import {
+  createPersonalRoadmapInDB,
+  attachProblemsToPersonalModulesInDB,
+  getUserTopicsFromDB,
+  getUserSkillAssessmentsFromDB,
+  getUserQuizPerformanceFromDB,
+  getUserCodeforcesStatsFromDB,
+  getLatestSkillLevelIdFromDB,
+} from "../repositories/roadmapAI.repo";
+import { FastAPIError, generateRoadmap } from "../lib/fastapiClient";
 
 export const getRoadmaps = async (req: Request, res: Response) => {
   try {
     const roadmaps = await getRoadmapsFromDB();
-    return res.status(200).json(roadmaps);
+    return res.status(200).json(ok(roadmaps));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -42,7 +53,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json(roadmap);
+    return res.status(200).json(ok(roadmap));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -64,10 +75,7 @@ export const createRoadmap = async (req: Request, res: Response) => {
       targetSkillLevelId: parseInt(targetSkillLevelId),
     });
 
-    res.status(201).json({
-      message: "Roadmap created successfully",
-      roadmap: roadmap,
-    });
+    res.status(201).json(ok({ roadmap }, "Roadmap created successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -84,10 +92,7 @@ export const updateRoadmap = async (req: Request, res: Response) => {
       targetSkillLevelId: parseInt(targetSkillLevelId),
     });
 
-    res.status(200).json({
-      message: "Roadmap updated successfully",
-      roadmap: roadmap,
-    });
+    res.status(200).json(ok({ roadmap }, "Roadmap updated successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -99,9 +104,7 @@ export const deleteRoadmap = async (req: Request, res: Response) => {
 
     await deleteRoadmapFromDB(id);
 
-    return res.status(200).json({
-      message: "Roadmap deleted successfully",
-    });
+    return res.status(200).json(ok(null, "Roadmap deleted successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -139,10 +142,7 @@ export const createModule = async (req: Request, res: Response) => {
       successCriteria,
     });
 
-    res.status(201).json({
-      message: "Module created successfully",
-      module: module,
-    });
+    res.status(201).json(ok({ module }, "Module created successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -171,10 +171,7 @@ export const updateModule = async (req: Request, res: Response) => {
       successCriteria,
     });
 
-    res.status(200).json({
-      message: "Module updated successfully",
-      module: module,
-    });
+    res.status(200).json(ok({ module }, "Module updated successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -185,9 +182,7 @@ export const deleteModule = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     await deleteModuleFromDB(id);
 
-    return res.status(200).json({
-      message: "Module deleted successfully",
-    });
+    return res.status(200).json(ok(null, "Module deleted successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -213,10 +208,7 @@ export const createResource = async (req: Request, res: Response) => {
       url,
     });
 
-    res.status(201).json({
-      message: "Resource created successfully",
-      resource: resource,
-    });
+    res.status(201).json(ok({ resource }, "Resource created successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -234,10 +226,7 @@ export const updateResource = async (req: Request, res: Response) => {
       url,
     });
 
-    res.status(200).json({
-      message: "Resource updated successfully",
-      resource: resource,
-    });
+    res.status(200).json(ok({ resource }, "Resource updated successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -249,9 +238,7 @@ export const deleteResource = async (req: Request, res: Response) => {
 
     await deleteResourceFromDB(id);
 
-    return res.status(200).json({
-      message: "Resource deleted successfully",
-    });
+    return res.status(200).json(ok(null, "Resource deleted successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -275,10 +262,7 @@ export const createProblem = async (req: Request, res: Response) => {
       platform,
     });
 
-    res.status(201).json({
-      message: "Problem created successfully",
-      problem: problem,
-    });
+    res.status(201).json(ok({ problem }, "Problem created successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -294,10 +278,7 @@ export const updateProblem = async (req: Request, res: Response) => {
       platform,
     });
 
-    res.status(200).json({
-      message: "Problem updated successfully",
-      problem: problem,
-    });
+    res.status(200).json(ok({ problem }, "Problem updated successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -309,9 +290,7 @@ export const deleteProblem = async (req: Request, res: Response) => {
 
     await deleteProblemFromDB(Number(id));
 
-    return res.status(200).json({
-      message: "Problem deleted successfully",
-    });
+    return res.status(200).json(ok(null, "Problem deleted successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
   }
@@ -366,14 +345,16 @@ export const getMenteeTopicPerformanceOverview = async (
       ),
     ]);
 
-    // Combine both responses
+    // Combine both responses (each FastAPI body is now { success, message, data })
+    const topicData = performanceResponse.data?.data ?? performanceResponse.data;
+    const aiData = aiSummaryResponse.data?.data ?? aiSummaryResponse.data;
     const combinedResponse = {
-      ...performanceResponse.data,
-      ai_insights: aiSummaryResponse.data.ai_insights,
-      performance_breakdown: aiSummaryResponse.data.performance,
+      ...topicData,
+      ai_insights: aiData?.ai_insights,
+      performance_breakdown: aiData?.performance,
     };
 
-    return res.status(200).json(combinedResponse);
+    return res.status(200).json(ok(combinedResponse));
   } catch (error) {
     console.error("Error fetching topic performance data from FastAPI:", error);
 
@@ -431,7 +412,7 @@ export const getMenteeRoadmap = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json({
+    return res.status(200).json(ok({
       learningPathId: progress.learningPathId,
       learningPathTitle: progress.learningPath.title,
       skillLevel: progress.learningPath.skillLevel.title,
@@ -444,7 +425,7 @@ export const getMenteeRoadmap = async (req: Request, res: Response) => {
       progressPercentage: progress.progressPercentage,
       isActive: progress.isActive,
       modules: progress.learningPath.pathModules,
-    });
+    }));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -467,7 +448,7 @@ export const getMyRoadmapSummary = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json(summary);
+    return res.status(200).json(ok(summary));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -490,7 +471,7 @@ export const getMyRoadmapCurrentFocus = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(200).json(currentFocus.currentModule);
+    return res.status(200).json(ok(currentFocus.currentModule));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -516,7 +497,7 @@ export const getMyRoadmapModulesWithProgress = async (
       });
     }
 
-    return res.status(200).json(focusData);
+    return res.status(200).json(ok(focusData));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
@@ -533,7 +514,107 @@ export const getMyRoadmapAchievements = async (req: Request, res: Response) => {
 
     const achievements = await getUserAchievementsFromDB(userId);
 
-    return res.status(200).json(achievements);
+    return res.status(200).json(ok(achievements));
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const generateMyRoadmap = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const topics = await getUserTopicsFromDB();
+    if (topics.length === 0) {
+      return res.status(400).json({
+        message: "No topics available to build a roadmap",
+      });
+    }
+
+    const [assessments, quizPerformance, codeforcesStats] = await Promise.all([
+      getUserSkillAssessmentsFromDB(userId),
+      getUserQuizPerformanceFromDB(userId),
+      getUserCodeforcesStatsFromDB(userId),
+    ]);
+
+    let response;
+    try {
+      response = await generateRoadmap({
+        userId,
+        topics: topics.map((topic) => ({ id: topic.id, title: topic.title })),
+        skillAssessments: assessments.map((assessment) => ({
+          assessmentType: assessment.assessmentType,
+          score: assessment.score,
+          skillLevelId: assessment.skillLevelId,
+        })),
+        quizPerformance,
+        codeforcesStats,
+      });
+    } catch (serviceError) {
+      if (serviceError instanceof FastAPIError) {
+        return res.status(serviceError.status).json({
+          message: serviceError.message,
+        });
+      }
+      throw serviceError;
+    }
+
+    if (!response.modules || response.modules.length === 0) {
+      return res.status(400).json({
+        message: "No roadmap modules could be generated",
+      });
+    }
+
+    const targetSkillLevelId = await getLatestSkillLevelIdFromDB(userId);
+    if (targetSkillLevelId == null) {
+      return res.status(500).json({
+        message: "No skill level configured for the platform",
+      });
+    }
+
+    const modulesWithTopics = response.modules.map((module) => ({
+      ...module,
+      topicId:
+        module.topicId ??
+        topics.find(
+          (topic) =>
+            topic.title.toLowerCase() === module.topicTitle.toLowerCase(),
+        )?.id ??
+        null,
+    }));
+
+    const { learningPath, createdModules, progress } =
+      await createPersonalRoadmapInDB(
+        userId,
+        targetSkillLevelId,
+        modulesWithTopics,
+      );
+
+    await attachProblemsToPersonalModulesInDB(createdModules);
+
+    return res.status(201).json(ok({
+      roadmap: {
+        id: learningPath.id,
+        title: learningPath.title,
+        description: learningPath.description,
+        progressId: progress.id,
+        currentModuleId: progress.currentModuleId,
+      },
+      modules: createdModules.map((module, idx) => ({
+        order: module.order,
+        topicId: module.topicId,
+        topicTitle: module.topicTitle,
+        suggestedDifficultyRange: module.suggestedDifficultyRange,
+        learningObjective: modulesWithTopics[idx]?.learningObjective ?? "",
+        estimatedHours: modulesWithTopics[idx]?.estimatedHours ?? 0,
+        practiceProblems: modulesWithTopics[idx]?.practiceProblems ?? [],
+      })),
+    }, "Personal roadmap generated successfully"));
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }

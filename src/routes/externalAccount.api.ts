@@ -1,6 +1,9 @@
 import express from "express";
 import { authorize } from "../middlewares/authorization";
-import { cfIntegrationOnRegisteration } from "../controllers/externalAccount.controller";
+import {
+  cfIntegrationOnRegisteration,
+  getCodeforcesIntegration,
+} from "../controllers/externalAccount.controller";
 
 const router = express.Router();
 
@@ -9,4 +12,11 @@ router.post(
   authorize(["Mentee"], false),
   cfIntegrationOnRegisteration,
 );
+
+router.get(
+  "/codeforces/integration",
+  authorize(["Mentee"], false),
+  getCodeforcesIntegration,
+);
+
 export { router };

@@ -14,6 +14,7 @@ import {
   updateAdmin,
   updateMenteePassword,
   updateMenteeProfile,
+  getNearbyUsers,
 } from "../controllers/user.controller";
 
 const router = express.Router();
@@ -47,6 +48,13 @@ router.post(
   "/mentees/skill-level",
   authorize(["Mentee"], false),
   setMenteeSkillLevel
+);
+
+//Nearby mentees route (must come before /mentees/:id)
+router.get(
+  "/mentees/nearby",
+  authorize(["Mentee", "Admin"], false),
+  getNearbyUsers
 );
 
 //Role Routes

@@ -63,6 +63,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
 
 export const getMenteeActivity = async (req: Request, res: Response) => {
   try {
+    // @ts-expect-error userId is defined
     const userId = req.user?.id as string | undefined;
     if (!userId)
       return res.status(401).json({ message: "Unauthorized" });
@@ -78,6 +79,7 @@ export const getMenteeActivity = async (req: Request, res: Response) => {
 
 export const getMenteeGrowth = async (req: Request, res: Response) => {
   try {
+    // @ts-expect-error userId is defined
     const userId = req.user?.id as string | undefined;
     if (!userId)
       return res.status(401).json({ message: "Unauthorized" });
