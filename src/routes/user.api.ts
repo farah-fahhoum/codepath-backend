@@ -28,6 +28,14 @@ router.delete("/admins/delete/:id", authorize(["Admin"], false), deleteAdmin);
 
 //Mentee Routes
 router.get("/mentees", authorize(["Admin"], false), getMentees);
+
+//Nearby mentees route (must come before /mentees/:id)
+router.get(
+  "/mentees/nearby",
+  authorize(["Mentee", "Admin"], false),
+  getNearbyUsers
+);
+
 router.get("/mentees/:id", authorize(["Admin"], false), getMentee);
 router.get(
   "/mentees/profile/view",
@@ -48,13 +56,6 @@ router.post(
   "/mentees/skill-level",
   authorize(["Mentee"], false),
   setMenteeSkillLevel
-);
-
-//Nearby mentees route (must come before /mentees/:id)
-router.get(
-  "/mentees/nearby",
-  authorize(["Mentee", "Admin"], false),
-  getNearbyUsers
 );
 
 //Role Routes

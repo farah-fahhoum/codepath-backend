@@ -53,6 +53,7 @@ async function main() {
   console.log("Seeding roles...");
   const adminRole = await prisma.role.create({ data: { title: "Admin" } });
   const menteeRole = await prisma.role.create({ data: { title: "Mentee" } });
+  await prisma.role.create({ data: { title: "Coach" } });
 
   console.log("Seeding achievements...");
   await prisma.achievement.createMany({

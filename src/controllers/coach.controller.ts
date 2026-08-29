@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import Joi from "joi";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import {
+  createCoachAccountInDB,
   createBookingInDB,
   findBookingByCalEventInDB,
   getBookingByIdFromDB,
@@ -68,6 +70,42 @@ export const getMyCoachProfile = async (req: Request, res: Response) => {
   }
 };
 
+export const createCoachAccount = async (req: Request, res: Response) => {
+  try {
+    const inputSchema = Joi.object({
+      name: Joi.string().trim().min(1).required(),
+      username: Joi.string().min(6).required(),
+      email: Joi.string().email().required(),
+      password: Joi.string().min(8).required(),
+      country: Joi.string().min(1).required(),
+      phone: Joi.string().optional(),
+      specialty: Joi.string().trim().min(1).required(),
+      bio: Joi.string().optional().allow(""),
+      hourlyRate: Joi.number().positive().optional().allow(null),
+      isAvailable: Joi.boolean().optional(),
+      bookingLink: Joi.string().uri().optional().allow(""),
+    });
+    const { value, error } = inputSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    const password = await bcrypt.hash(value.password, 10);
+    const coach = await createCoachAccountInDB({
+      ...value,
+      password,
+    });
+
+    return res.status(201).json({
+      message: "Coach account created successfully",
+      coach,
+    });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({ message: "Username or email already in use" });
+    }
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
 export const createOrUpdateMyCoachProfile = async (
   req: Request,
   res: Response,
@@ -77,6 +115,7 @@ export const createOrUpdateMyCoachProfile = async (
     const userId = req.user?.id as string;
 
     const inputSchema = Joi.object({
+      name: Joi.string().trim().min(1).required(),
       specialty: Joi.string().min(1).required(),
       bio: Joi.string().optional().allow(""),
       hourlyRate: Joi.number().positive().optional().allow(null),
@@ -87,6 +126,7 @@ export const createOrUpdateMyCoachProfile = async (
     if (error) return res.status(400).json({ message: error.message });
 
     const coach = await upsertCoachProfileInDB(userId, {
+      name: value.name,
       specialty: value.specialty,
       bio: value.bio,
       hourlyRate: value.hourlyRate,

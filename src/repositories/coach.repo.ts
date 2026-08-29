@@ -57,9 +57,62 @@ export const getCoachProfileForUserFromDB = async (
   return coach ? toCoachProfile(coach) : null;
 };
 
+export const createCoachAccountInDB = async (data: {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  country: string;
+  phone?: string;
+  specialty: string;
+  bio?: string;
+  hourlyRate?: number | null;
+  isAvailable?: boolean;
+  bookingLink?: string;
+}): Promise<CoachProfile> => {
+  return prisma.$transaction(async (transaction) => {
+    const coachRole = await transaction.role.upsert({
+      where: { title: "Coach" },
+      update: {},
+      create: { title: "Coach" },
+    });
+    const user = await transaction.user.create({
+      data: {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        roleId: coachRole.id,
+        profile: {
+          create: {
+            fullName: data.name,
+            country: data.country,
+            phone: data.phone,
+            bio: data.bio,
+          },
+        },
+        coachProfile: {
+          create: {
+            specialty: data.specialty,
+            bio: data.bio,
+            hourlyRate: data.hourlyRate,
+            isAvailable: data.isAvailable ?? true,
+            bookingLink: data.bookingLink,
+          },
+        },
+      },
+    });
+    const coach = await transaction.coach.findUniqueOrThrow({
+      where: { userId: user.id },
+      include: coachInclude,
+    });
+    return toCoachProfile(coach);
+  });
+};
+
 export const upsertCoachProfileInDB = async (
   userId: string,
   data: {
+    name: string;
     specialty: string;
     bio?: string;
     hourlyRate?: number | null;
@@ -67,6 +120,11 @@ export const upsertCoachProfileInDB = async (
     bookingLink?: string;
   },
 ) => {
+  await prisma.profile.update({
+    where: { userId },
+    data: { fullName: data.name },
+  });
+
   const coach = await prisma.coach.upsert({
     where: { userId },
     update: {

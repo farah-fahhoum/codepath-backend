@@ -3,6 +3,7 @@ import { authorize } from "../middlewares/authorization";
 import {
   calWebhook,
   createBooking,
+  createCoachAccount,
   createOrUpdateMyCoachProfile,
   getCoach,
   getCoachBookings,
@@ -17,11 +18,14 @@ const router = express.Router();
 // Cal.com webhook (public, HMAC-verified in the controller)
 router.post("/webhook/cal", calWebhook);
 
+// Only admins can create coach accounts.
+router.post("/", authorize(["Admin"], false), createCoachAccount);
+
 // My coach profile (static paths must come before /:id)
-router.get("/me", authorize(["Mentee", "Admin"], false), getMyCoachProfile);
+router.get("/me", authorize(["Coach"], false), getMyCoachProfile);
 router.post(
   "/me",
-  authorize(["Mentee", "Admin"], false),
+  authorize(["Coach"], false),
   createOrUpdateMyCoachProfile,
 );
 
@@ -33,12 +37,12 @@ router.get(
 );
 router.get(
   "/bookings/coach",
-  authorize(["Mentee", "Admin"], false),
+  authorize(["Coach", "Admin"], false),
   getCoachBookings,
 );
 router.patch(
   "/bookings/:id",
-  authorize(["Mentee", "Admin"], false),
+  authorize(["Mentee", "Coach", "Admin"], false),
   updateBookingStatus,
 );
 

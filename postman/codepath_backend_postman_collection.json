@@ -3724,7 +3724,7 @@
           ]
         },
         {
-          "name": "Create / Update My Coach Profile",
+          "name": "Create Coach Account (Admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -3738,18 +3738,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/coaches/me",
+              "raw": "{{baseUrl}}/coaches",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "coaches",
-                "me"
+                "coaches"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"specialty\": \"Competitive Programming\",\n  \"bio\": \"ICPC regional finalist helping mentees improve their problem solving.\",\n  \"hourlyRate\": 30,\n  \"isAvailable\": true,\n  \"bookingLink\": \"https://cal.com/my-coach-link\"\n}"
+              "raw": "{\n  \"name\": \"Alex Coach\",\n  \"username\": \"alexcoach\",\n  \"email\": \"alex.coach@example.com\",\n  \"password\": \"coachPassword123\",\n  \"country\": \"United States\",\n  \"specialty\": \"Competitive Programming\",\n  \"bio\": \"ICPC regional finalist helping mentees improve their problem solving.\",\n  \"hourlyRate\": 30,\n  \"isAvailable\": true,\n  \"bookingLink\": \"https://cal.com/my-coach-link\"\n}"
             }
           },
           "event": [

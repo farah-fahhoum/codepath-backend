@@ -291,7 +291,8 @@ All three callers fall back to deterministic responses when Gemini is unreachabl
 
 ### Coaches & Bookings
 - `GET /coaches` / `GET /coaches/:id` — Coach directory
-- `GET /coaches/me` / `POST /coaches/me` — View or create/update your coach profile
+- `POST /coaches` — Admin-only. Create a coach account with `{ name, username, email, password, country, specialty, bio?, phone?, hourlyRate?, isAvailable?, bookingLink? }`
+- `GET /coaches/me` / `POST /coaches/me` — Coach-only. View or update the authenticated coach's profile
 - `POST /coaches/:id/bookings` — Request a booking `{ startTime, endTime, notes? }`
 - `GET /coaches/bookings/me` — My bookings as a mentee
 - `GET /coaches/bookings/coach` — My bookings as a coach
