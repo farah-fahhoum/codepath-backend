@@ -342,7 +342,13 @@ const clamp = (value: number, min: number, max: number) =>
  */
 export const getNearbyMenteesFromDB = async (
   userId: string,
-  options?: { country?: string; city?: string; minRating?: number; limit?: number },
+  options?: {
+    country?: string;
+    city?: string;
+    minRating?: number;
+    maxRating?: number;
+    limit?: number;
+  },
 ): Promise<NearbyMentee[]> => {
   const menteeRole = await prisma.role.findFirst({
     where: { title: "Mentee" },
@@ -356,7 +362,7 @@ export const getNearbyMenteesFromDB = async (
   });
   if (!me) return [];
 
-  const limit = options?.limit && options.limit > 0 ? Math.min(options.limit, 50) : 20;
+  const limit = options?.limit && options.limit > 0 ? Math.min(options.limit, 100) : 50;
 
   const users = await prisma.user.findMany({
     where: {
@@ -404,11 +410,15 @@ export const getNearbyMenteesFromDB = async (
     ) {
       continue;
     }
-    if (options?.minRating != null && (profile.rating ?? 0) < options.minRating) {
+    const profileRating = profile.rating ?? 0;
+    if (options?.minRating != null && profileRating < options.minRating) {
+      continue;
+    }
+    if (options?.maxRating != null && profileRating > options.maxRating) {
       continue;
     }
 
-    const rating = profile.rating ?? 0;
+    const rating = profileRating;
     const accuracy = profile.accuracy ?? 0;
     const problemsSolved = profile.problemsSolved ?? 0;
 

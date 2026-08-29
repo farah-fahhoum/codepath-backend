@@ -444,7 +444,8 @@ export const getNearbyUsers = async (req: Request, res: Response) => {
       country: Joi.string().optional(),
       city: Joi.string().optional(),
       minRating: Joi.number().min(0).optional(),
-      limit: Joi.number().integer().min(1).max(50).optional(),
+      maxRating: Joi.number().min(0).optional(),
+      limit: Joi.number().integer().min(1).max(100).default(50).optional(),
     });
     const { value, error } = querySchema.validate(req.query);
     if (error) return res.status(400).json({ message: error.message });
@@ -453,7 +454,8 @@ export const getNearbyUsers = async (req: Request, res: Response) => {
       country: value.country,
       city: value.city,
       minRating: value.minRating,
-      limit: value.limit,
+      maxRating: value.maxRating,
+      limit: value.limit ?? 50,
     });
 
     return res.status(200).json(mentees);
