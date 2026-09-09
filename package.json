@@ -17,6 +17,8 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
+    "db:seed-topics": "tsx scripts/seed-topics.ts",
+    "db:backfill-snapshots": "tsx scripts/backfill-skill-snapshots.ts",
     "db:push": "prisma db push",
     "setup:dev": "npm run docker:up && npm run db:generate && npm run db:migrate"
   },
@@ -53,6 +55,7 @@
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.2.0",
     "@types/nodemailer": "^7.0.3",
     "@types/passport": "^1.0.17",
     "@types/pg": "^8.16.0",

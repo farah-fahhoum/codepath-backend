@@ -14,6 +14,7 @@ import {
   getActivityByDateForUser,
   getMonthlyGrowthForUser,
 } from "../repositories/statistics.repo";
+import { getMenteeSkillProfile } from "../services/assessment.service";
 
 export const getAdminStatistics = async (req: Request, res: Response) => {
   try {
@@ -47,6 +48,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
     const accuracy = await getMenteeAccuracy(userId);
     const yourCodePrint = await getMenteeCodePrint(userId);
     const insightsPanel = await getMenteeAIInsights(userId);
+    const skillProfile = await getMenteeSkillProfile(userId);
 
     return res.status(200).json({
       codePathRating: codePathRating,
@@ -55,6 +57,7 @@ export const getMenteeStatistics = async (req: Request, res: Response) => {
       accuracy: accuracy,
       yourCodePrint: yourCodePrint,
       insightsPanel: insightsPanel,
+      skillProfile,
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
@@ -70,8 +73,8 @@ export const getMenteeActivity = async (req: Request, res: Response) => {
     const year = parseInt(String(req.query.year ?? new Date().getFullYear()), 10);
     if (Number.isNaN(year) || year < 2000 || year > 2100)
       return res.status(400).json({ message: "Invalid year" });
-    const data = await getActivityByDateForUser(userId, year);
-    return res.status(200).json({ data });
+    const activity = await getActivityByDateForUser(userId, year);
+    return res.status(200).json(activity);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }

@@ -1,11 +1,7 @@
 import { prisma } from "../lib/prisma";
-import { getCodeforcesHandleForUser } from "./externalAccount.repo";
-import {
-  getMenteeAccuracy,
-  getMenteeCodePathLevel,
-  getMenteeCodePrint,
-  getMenteeProblemsSolvedCount,
-} from "./statistics.repo";
+import { getMenteeCodePrint } from "./statistics.repo";
+import { getMenteeSkillProfile } from "../services/assessment.service";
+import { getCodePathSkillSourceFromDB } from "./assessment.repo";
 
 export const getUserTopicsFromDB = async () => {
   return prisma.topic.findMany({
@@ -28,6 +24,9 @@ export const getUserSkillAssessmentsFromDB = async (userId: string) => {
 };
 
 export const getLatestSkillLevelIdFromDB = async (userId: string) => {
+  const profile = await getMenteeSkillProfile(userId);
+  if (profile.skillLevelId != null) return profile.skillLevelId;
+
   const assessment = await prisma.userSkillAssessment.findFirst({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -56,6 +55,42 @@ interface TopicPerformance {
 export const getUserQuizPerformanceFromDB = async (
   userId: string,
 ): Promise<TopicPerformance[]> => {
+  const [cfPerformance, codepathSource] = await Promise.all([
+    getUserQuizPerformanceFromAttempts(userId),
+    getCodePathSkillSourceFromDB(userId),
+  ]);
+
+  const merged = new Map<string, TopicPerformance>();
+  for (const item of cfPerformance) {
+    merged.set(item.topic, item);
+  }
+  for (const item of codepathSource.topicPerformance) {
+    const existing = merged.get(item.topic);
+    if (existing) {
+      const attempts = existing.attempts + item.attempts;
+      const solved = existing.solved + item.solved;
+      merged.set(item.topic, {
+        topic: item.topic,
+        attempts,
+        solved,
+        accuracy: attempts > 0 ? Math.round((solved / attempts) * 100) : 0,
+      });
+    } else {
+      merged.set(item.topic, {
+        topic: item.topic,
+        attempts: item.attempts,
+        solved: item.solved,
+        accuracy: item.accuracy,
+      });
+    }
+  }
+
+  return Array.from(merged.values()).sort((a, b) => b.attempts - a.attempts);
+};
+
+async function getUserQuizPerformanceFromAttempts(
+  userId: string,
+): Promise<TopicPerformance[]> {
   const topics = await prisma.topic.findMany({
     select: { id: true, title: true, tags: true },
   });
@@ -144,19 +179,19 @@ interface TopicBreakdownEntry {
 }
 
 export const getUserCodeforcesStatsFromDB = async (userId: string) => {
-  const handle = await getCodeforcesHandleForUser(userId);
-  const [level, problemsSolved, accuracy, codePrint] = await Promise.all([
-    getMenteeCodePathLevel(userId),
-    getMenteeProblemsSolvedCount(userId),
-    getMenteeAccuracy(userId),
-    getMenteeCodePrint(userId),
-  ]);
+  const profile = await getMenteeSkillProfile(userId);
+  const handle = profile.sources.codeforces.handle;
+  const codePrint = await getMenteeCodePrint(userId);
 
   return {
-    rating: level.rating || 0,
-    tier: level.tier === "Not Assessed" ? "Beginner" : level.tier,
-    problemsSolved,
-    accuracy,
+    rating: profile.rating ?? 0,
+    tier: profile.tier === "Not Assessed" ? "Beginner" : profile.tier,
+    problemsSolved: profile.sources.codeforces.connected
+      ? profile.sources.codeforces.problemsSolved
+      : profile.sources.codepath.solvedCount,
+    accuracy: profile.sources.codeforces.connected
+      ? profile.sources.codeforces.accuracy
+      : profile.sources.codepath.accuracy,
     topicBreakdown: codePrint.map((entry): TopicBreakdownEntry => ({
       topic: entry.topic,
       attempts: entry.attempts,
@@ -280,7 +315,51 @@ export const attachProblemsToPersonalModulesInDB = async (
       .sort((a, b) => b.score - a.score || a.rating - b.rating)
       .slice(0, 3);
 
-    if (scored.length === 0) continue;
+    if (scored.length === 0) {
+      const cpCandidates = await prisma.codePathProblem.findMany({
+        where: {
+          status: "PUBLISHED",
+          rating: { gte: min, lte: max },
+        },
+        select: { id: true, tags: true, rating: true },
+        take: 12,
+      });
+
+      const cpScored = cpCandidates
+        .map((p) => {
+          let tags: string[] = [];
+          try {
+            tags = JSON.parse(p.tags || "[]") as string[];
+          } catch {
+            tags = [];
+          }
+          const score = tags.reduce(
+            (sum, tag) =>
+              sum +
+              keywords.reduce(
+                (s, kw) => s + (tag.includes(kw) || kw.includes(tag) ? 1 : 0),
+                0,
+              ),
+            0,
+          );
+          return { ...p, score };
+        })
+        .sort((a, b) => b.score - a.score || a.rating - b.rating)
+        .slice(0, 3);
+
+      if (cpScored.length > 0) {
+        await prisma.moduleProblem.createMany({
+          data: cpScored.map((p) => ({
+            pathModuleId: module.id,
+            externalProblemId: p.id,
+            platform: "CodePath",
+          })),
+          skipDuplicates: true,
+        });
+      }
+      continue;
+    }
+
     await prisma.moduleProblem.createMany({
       data: scored.map((p) => ({
         pathModuleId: module.id,
@@ -289,5 +368,43 @@ export const attachProblemsToPersonalModulesInDB = async (
       })),
       skipDuplicates: true,
     });
+
+    const cpCandidates = await prisma.codePathProblem.findMany({
+      where: { status: "PUBLISHED", rating: { gte: min, lte: max } },
+      select: { id: true, tags: true, rating: true },
+      take: 8,
+    });
+    const cpScored = cpCandidates
+      .map((p) => {
+        let tags: string[] = [];
+        try {
+          tags = JSON.parse(p.tags || "[]") as string[];
+        } catch {
+          tags = [];
+        }
+        const score = tags.reduce(
+          (sum, tag) =>
+            sum +
+            keywords.reduce(
+              (s, kw) => s + (tag.includes(kw) || kw.includes(tag) ? 1 : 0),
+              0,
+            ),
+          0,
+        );
+        return { ...p, score };
+      })
+      .sort((a, b) => b.score - a.score || a.rating - b.rating)
+      .slice(0, 2);
+
+    if (cpScored.length > 0) {
+      await prisma.moduleProblem.createMany({
+        data: cpScored.map((p) => ({
+          pathModuleId: module.id,
+          externalProblemId: p.id,
+          platform: "CodePath",
+        })),
+        skipDuplicates: true,
+      });
+    }
   }
 };

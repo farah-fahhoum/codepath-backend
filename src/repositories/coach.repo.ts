@@ -8,7 +8,7 @@ const coachInclude = {
       id: true,
       username: true,
       email: true,
-      profile: { select: { fullName: true, country: true } },
+      profile: { select: { fullName: true, country: true, avatarUrl: true } },
     },
   },
 } as const;
@@ -107,6 +107,62 @@ export const createCoachAccountInDB = async (data: {
     });
     return toCoachProfile(coach);
   });
+};
+
+export const updateCoachAvatarInDB = async (
+  coachId: string,
+  avatarUrl: string | null,
+): Promise<CoachProfile | null> => {
+  const existing = await prisma.coach.findUnique({ where: { id: coachId } });
+  if (!existing) return null;
+
+  await prisma.profile.update({
+    where: { userId: existing.userId },
+    data: { avatarUrl },
+  });
+
+  const coach = await prisma.coach.findUnique({
+    where: { id: coachId },
+    include: coachInclude,
+  });
+
+  return coach ? toCoachProfile(coach) : null;
+};
+
+export const updateCoachProfileByIdInDB = async (
+  coachId: string,
+  data: {
+    name?: string;
+    specialty?: string;
+    bio?: string;
+    hourlyRate?: number | null;
+    isAvailable?: boolean;
+    bookingLink?: string;
+  },
+): Promise<CoachProfile | null> => {
+  const existing = await prisma.coach.findUnique({ where: { id: coachId } });
+  if (!existing) return null;
+
+  if (data.name) {
+    await prisma.profile.update({
+      where: { userId: existing.userId },
+      data: { fullName: data.name },
+    });
+  }
+
+  const coach = await prisma.coach.update({
+    where: { id: coachId },
+    data: {
+      ...(data.specialty !== undefined ? { specialty: data.specialty } : {}),
+      ...(data.bio !== undefined ? { bio: data.bio } : {}),
+      ...(data.hourlyRate !== undefined ? { hourlyRate: data.hourlyRate } : {}),
+      ...(data.isAvailable !== undefined ? { isAvailable: data.isAvailable } : {}),
+      ...(data.bookingLink !== undefined ? { bookingLink: data.bookingLink } : {}),
+    },
+    include: coachInclude,
+  });
+
+  return toCoachProfile(coach);
 };
 
 export const upsertCoachProfileInDB = async (

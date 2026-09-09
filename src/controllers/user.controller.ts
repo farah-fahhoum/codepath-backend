@@ -26,7 +26,6 @@ import {
 } from "../repositories/user.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 import {
-  getMenteeCodePathLevel,
   getMenteeProblemsSolvedCount,
 } from "../repositories/statistics.repo";
 import { getMenteeQuizResult } from "../repositories/quiz.repo";
@@ -35,6 +34,7 @@ import {
   setMenteeManualSkillLevel,
 } from "../repositories/skillLevel.repo";
 import { activateUserRoadmapForSkillLevelInDB } from "../repositories/roadmap.repo";
+import { getMenteeSkillProfile, refreshSkillSnapshotFast, scheduleFullSkillSnapshotRefresh, applyLevelAssessmentChoice, getSkillLevelOptions, getSkillSyncStatus, SkillSyncInProgressError } from "../services/assessment.service";
 
 export const adminAndMenteeLogin = async (req: Request, res: Response) => {
   try {
@@ -335,7 +335,7 @@ export const getMenteeProfile = async (req: Request, res: Response) => {
     const externalAccountIntegration =
       await getExternalAccountIntegrationFromDB(userId);
     const problemsSolved = await getMenteeProblemsSolvedCount(userId);
-    const externalAccountInfo = await getMenteeCodePathLevel(userId);
+    const skillProfile = await getMenteeSkillProfile(userId);
     const quizResult = await getMenteeQuizResult(userId);
     if (!mentee) return res.status(404).json({ message: "Invalid mentee id" });
     else
@@ -345,9 +345,12 @@ export const getMenteeProfile = async (req: Request, res: Response) => {
         statistics: {
           problemsSolved,
           quizResult,
-          level: externalAccountInfo.tier,
-          rating: externalAccountInfo.rating,
+          level: skillProfile.tier,
+          rating: skillProfile.rating ?? 0,
+          confidence: skillProfile.confidence,
+          primarySource: skillProfile.primarySource,
         },
+        skillProfile,
       });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error: ", error });
@@ -425,6 +428,8 @@ export const setMenteeSkillLevel = async (req: Request, res: Response) => {
 
     await setMenteeManualSkillLevel(userId, value.skillLevelId);
     await activateUserRoadmapForSkillLevelInDB(userId, value.skillLevelId);
+    await refreshSkillSnapshotFast(userId);
+    scheduleFullSkillSnapshotRefresh(userId);
 
     return res.status(200).json({
       message: "Skill level set successfully",
@@ -432,6 +437,86 @@ export const setMenteeSkillLevel = async (req: Request, res: Response) => {
     });
   } catch (err) {
     return res.status(500).json({ message: "Internal Server Error", error: err });
+  }
+};
+
+export const getMenteeSkillProfileView = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const forceRefresh = req.query.refresh === "true";
+    const profile = await getMenteeSkillProfile(userId, {
+      forceRefresh,
+    });
+    return res.status(200).json(profile);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getSkillLevelOptionsView = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await getSkillLevelOptions(userId);
+    const profile = await getMenteeSkillProfile(userId);
+    return res.status(200).json({ ...result, profile });
+  } catch (error) {
+    if (error instanceof SkillSyncInProgressError) {
+      return res.status(409).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const getSkillSyncStatusView = async (req: Request, res: Response) => {
+  try {
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const sync = await getSkillSyncStatus(userId);
+    return res.status(200).json(sync);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const setSkillLevelPreferenceView = async (req: Request, res: Response) => {
+  try {
+    const schema = Joi.object({
+      preference: Joi.string()
+        .valid("blended", "codeforces", "codepath")
+        .required(),
+      assessmentMethod: Joi.string().valid("ai", "rules").default("rules"),
+    });
+    const { value, error } = schema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // @ts-expect-error userId is defined
+    const userId = req.user?.id as string;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const profile = await applyLevelAssessmentChoice(
+      userId,
+      value.preference,
+      value.assessmentMethod,
+    );
+    return res.status(200).json({
+      message: "Skill level preference updated",
+      profile,
+      skillSyncPending: true,
+      roadmapSynced: profile.skillLevelId != null,
+    });
+  } catch (error) {
+    if (error instanceof SkillSyncInProgressError) {
+      return res.status(409).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "Internal Server Error", error });
   }
 };
 

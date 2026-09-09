@@ -12,8 +12,11 @@ import {
   getMySubmissions,
   getScoreboard,
   joinContest,
+  publishContest,
   startContest,
+  startVirtualContest,
   submitSolution,
+  updateContest,
 } from "../controllers/contest.controller";
 
 const router = express.Router();
@@ -25,8 +28,11 @@ router.post("/create", authorize(["Admin"], false), createContest);
 
 // Param paths
 router.get("/:id", authorize(["Mentee", "Admin"], false), getContest);
+router.put("/:id", authorize(["Admin"], false), updateContest);
+router.post("/:id/publish", authorize(["Admin"], false), publishContest);
 router.post("/:id/join", authorize(["Mentee", "Admin"], false), joinContest);
 router.post("/:id/start", authorize(["Mentee", "Admin"], false), startContest);
+router.post("/:id/virtual/start", authorize(["Mentee", "Admin"], false), startVirtualContest);
 router.post(
   "/:id/submissions",
   authorize(["Mentee", "Admin"], false),

@@ -98,9 +98,21 @@ The server will start at `http://localhost:3000`
 
 | Command            | Description                |
 | ------------------ | -------------------------- |
-| `pnpm docker:up`   | Start PostgreSQL container |
-| `pnpm docker:down` | Stop PostgreSQL container  |
+| `pnpm docker:up`   | Start PostgreSQL + Piston  |
+| `pnpm docker:down` | Stop containers            |
 | `pnpm docker:logs` | View PostgreSQL logs       |
+
+### Self-hosted Piston (code execution)
+
+Public `emkc.org` Piston is not used. After `docker compose up -d piston`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-piston-runtimes.ps1
+```
+
+Set `PISTON_BASE_URL=http://127.0.0.1:2000` in `.env` (default). Piston listens on port **2000**.
+
+Installs `python`, `node` (javascript), `java`, then `gcc` (c/c++). The `gcc` package can take a long time on first install; retry the script if it reports residual files.
 
 ## 🗄️ Database Commands
 
@@ -181,6 +193,8 @@ codepath-backend/
 | `EMAIL_ADDRESS`  | SMTP sender email (Gmail)    | Required                |
 | `EMAIL_APP_PASSWORD` | Gmail App Password           | Required                |
 | `FASTAPI_BASE_URL` | URL of the companion FastAPI service | `http://127.0.0.1:8000` |
+| `PISTON_BASE_URL` | Self-hosted Piston API base URL | `http://127.0.0.1:2000` |
+| `PISTON_API_KEY` | Optional Authorization header for Piston | (unset) |
 
 ## 🔍 Troubleshooting
 

@@ -15,7 +15,11 @@ export interface CoachProfile {
     id: string;
     username: string;
     email: string;
-    profile: { fullName: string | null; country: string | null } | null;
+    profile: {
+      fullName: string | null;
+      country: string | null;
+      avatarUrl: string | null;
+    } | null;
   };
 }
 

@@ -14,23 +14,24 @@ const router = express.Router();
 
 //Problemset Routes
 router.get("/", getProblems);
-router.get("/:contestId/:index", getProblem);
 
-// Run code (Piston)
-router.post("/run", runCode);
-
-//Favourite Problem Routes
-router.get("/favourites", authorize(["Mentee"], false), getFavouriteProblems);
+//Favourite Problem Routes (before /:contestId/:index to avoid route conflicts)
+router.get("/favourites", authorize(["Mentee", "Admin"], false), getFavouriteProblems);
 router.post(
   "/favourites/add",
-  authorize(["Mentee"], false),
+  authorize(["Mentee", "Admin"], false),
   addProblemToFavourite,
 );
 router.delete(
   "/favourites/remove/:id",
-  authorize(["Mentee"], false),
+  authorize(["Mentee", "Admin"], false),
   removeProblemFromFavourite,
 );
+
+router.get("/:contestId/:index", getProblem);
+
+// Run code (Piston)
+router.post("/run", runCode);
 
 //Problems Submission Routes
 router.post("/submit", authorize(["Mentee"], false), submitProblem);

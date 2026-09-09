@@ -11,6 +11,10 @@ import {
   getRole,
   getRoles,
   setMenteeSkillLevel,
+  getMenteeSkillProfileView,
+  getSkillLevelOptionsView,
+  getSkillSyncStatusView,
+  setSkillLevelPreferenceView,
   updateAdmin,
   updateMenteePassword,
   updateMenteeProfile,
@@ -29,14 +33,12 @@ router.delete("/admins/delete/:id", authorize(["Admin"], false), deleteAdmin);
 //Mentee Routes
 router.get("/mentees", authorize(["Admin"], false), getMentees);
 
-//Nearby mentees route (must come before /mentees/:id)
+// Specific mentee routes MUST come before /mentees/:id (otherwise :id captures e.g. "skill-level-options")
 router.get(
   "/mentees/nearby",
   authorize(["Mentee", "Admin"], false),
   getNearbyUsers
 );
-
-router.get("/mentees/:id", authorize(["Admin"], false), getMentee);
 router.get(
   "/mentees/profile/view",
   authorize(["Mentee"], false),
@@ -57,6 +59,28 @@ router.post(
   authorize(["Mentee"], false),
   setMenteeSkillLevel
 );
+router.get(
+  "/mentees/skill-profile",
+  authorize(["Mentee", "Admin"], false),
+  getMenteeSkillProfileView
+);
+router.get(
+  "/mentees/skill-level-options",
+  authorize(["Mentee"], false),
+  getSkillLevelOptionsView
+);
+router.get(
+  "/mentees/skill-sync-status",
+  authorize(["Mentee"], false),
+  getSkillSyncStatusView
+);
+router.post(
+  "/mentees/skill-level-preference",
+  authorize(["Mentee"], false),
+  setSkillLevelPreferenceView
+);
+
+router.get("/mentees/:id", authorize(["Admin"], false), getMentee);
 
 //Role Routes
 router.get("/roles", authorize(["Admin"], false), getRoles);

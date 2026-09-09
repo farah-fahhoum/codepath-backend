@@ -19,6 +19,29 @@ export interface FastApiCodeforcesStats {
   topicBreakdown?: FastApiPerformanceItem[];
 }
 
+export interface FastApiCodePathStats {
+  solvedCount?: number;
+  attemptedCount?: number;
+  avgSolvedRating?: number;
+  accuracy?: number | null;
+  topicPerformance?: FastApiPerformanceItem[];
+}
+
+export interface FastApiContestStats {
+  participatedCount?: number;
+  finishedCount?: number;
+  avgSolveRate?: number;
+  avgProblemRating?: number;
+  totalContestSolves?: number;
+}
+
+export interface FastApiPlacementStats {
+  skillLevelTitle?: string;
+  assessmentType?: string;
+  score?: number;
+  assessedAt?: string;
+}
+
 export interface FastApiSkillAssessmentInput {
   assessmentType?: string | null;
   score?: number;
@@ -40,6 +63,9 @@ export interface RoadmapGenerateRequest {
   skillAssessments?: FastApiSkillAssessmentInput[];
   quizPerformance?: FastApiPerformanceItem[];
   codeforcesStats?: FastApiCodeforcesStats | null;
+  codepathStats?: FastApiCodePathStats | null;
+  contestStats?: FastApiContestStats | null;
+  placement?: FastApiPlacementStats | null;
 }
 
 export interface RoadmapModule {
@@ -118,4 +144,36 @@ export interface ReferenceSection {
 
 export interface ReferenceCurateResponse {
   sections: ReferenceSection[];
+}
+
+export interface SkillAssessmentRequest {
+  userId: string;
+  levelPreference?: string;
+  codeforces: {
+    connected: boolean;
+    handle: string | null;
+    rating: number | null;
+    problemsSolved: number;
+    accuracy: number | null;
+  };
+  codepath: FastApiCodePathStats;
+  contest: FastApiContestStats;
+  placement?: FastApiPlacementStats | null;
+}
+
+export interface SkillAssessmentContribution {
+  source: string;
+  tier: string;
+  rating: number | null;
+  weight: number;
+  label: string;
+}
+
+export interface SkillAssessmentResponse {
+  tier: string;
+  rating: number | null;
+  confidence: string;
+  primarySource: string;
+  reasoning: string;
+  contributions: SkillAssessmentContribution[];
 }

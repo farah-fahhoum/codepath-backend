@@ -14,8 +14,29 @@ services:
       - postgres_data:/var/lib/postgresql/data/pgdata
     networks:
       - codepath-network
+
+  # Self-hosted Piston code execution engine (required for /problems/run and future judge).
+  # Privileged + cgroup access is required by Isolate sandboxing.
+  # After first start, install runtimes: see scripts/install-piston-runtimes.ps1
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: codepath-piston
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "2000:2000"
+    volumes:
+      - piston_packages:/piston/packages
+    networks:
+      - codepath-network
+    # Ensure jobs can use host cgroups (needed on some Docker Desktop setups)
+    tmpfs:
+      - /tmp:exec,mode=1777,size=1g
+
 volumes:
   postgres_data:
+    driver: local
+  piston_packages:
     driver: local
 
 networks:

@@ -3,12 +3,14 @@ export interface Roadmap {
   title: string;
   description?: string;
   skillLevel: string;
+  targetSkillLevelId?: number;
   modulesCount?: number;
   duration?: number;
   createdAt: Date;
 }
 
 export interface RoadmapWithModules extends Roadmap {
+  targetSkillLevelId: number;
   pathModules: PathModule[];
 }
 

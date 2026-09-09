@@ -13,66 +13,41 @@ import {
   getCodeforcesProblemsMap,
   getProblemFromCodeforces,
   getUserFavouriteProblemsFromDB,
-  upsertUserProblemAttempt,
+  listCodeforcesProblemsFromAPI,
 } from "../repositories/problem.repo";
+import { recordProblemAttempt } from "../repositories/userProblemAttempt.repo";
+import {
+  getCodePathProblemByIdFromDB,
+  getPublishedCodePathProblemsByIdsFromDB,
+} from "../repositories/codepathProblem.repo";
+import {
+  CodeExecutionError,
+  defaultExecutionProvider,
+} from "../services/execution";
+import { problemListQuerySchema } from "../lib/problemListQuery";
+
 export const getProblems = async (req: Request, res: Response) => {
   try {
-    const querySchema = Joi.object({
-      page: Joi.number().integer().min(1).default(1),
-      limit: Joi.number().integer().min(1).max(200).default(20),
-      minRating: Joi.number().integer().min(0).optional().allow(null),
-      tag: Joi.string().optional().allow("").allow(null),
-    });
-    const { value, error } = querySchema.validate(req.query);
+    const { value, error } = problemListQuerySchema.validate(req.query);
     if (error) return res.status(400).json({ message: error.message });
 
-    const resp = await axios.get(
-      "https://codeforces.com/api/problemset.problems",
-      { timeout: 10000 },
-    );
-    const cfProblems = resp.data;
-    if (!cfProblems || cfProblems.status !== "OK") {
-      return res.status(502).json({
-        message: "Upstream API returned non-OK status",
-        status: cfProblems.status,
-      });
-    }
-    const allProblems = (cfProblems?.result?.problems ?? []).map((p: any) => ({
-      title: p.name,
-      tags: p.tags ?? [],
-      rating: p.rating ?? null,
-      index: p.index,
-      contestId: p.contestId ?? null,
-    }));
-
-    let filtered = allProblems;
-    if (value.minRating != null && value.minRating > 0) {
-      filtered = filtered.filter(
-        (p: { rating: number | null }) =>
-          p.rating != null && p.rating >= value.minRating
-      );
-    }
-    if (value.tag && value.tag !== "all") {
-      filtered = filtered.filter((p: { tags: string[] }) =>
-        p.tags.includes(value.tag)
-      );
-    }
-
-    const total = filtered.length;
-    const start = (value.page - 1) * value.limit;
-    const items = filtered.slice(start, start + value.limit);
-
-    const availableTags = [
-      ...new Set(allProblems.flatMap((p: { tags: string[] }) => p.tags)),
-    ].sort();
+    const result = await listCodeforcesProblemsFromAPI({
+      page: value.page,
+      limit: value.limit,
+      minRating: value.minRating,
+      maxRating: value.maxRating,
+      tag: value.tag,
+      search: value.search,
+      sort: value.sort,
+    });
 
     return res.status(200).json({
       page: value.page,
       limit: value.limit,
-      total,
-      totalPages: Math.ceil(total / value.limit) || 1,
-      items,
-      availableTags,
+      total: result.total,
+      totalPages: result.totalPages,
+      items: result.items,
+      availableTags: result.availableTags,
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -84,15 +59,6 @@ export const getProblems = async (req: Request, res: Response) => {
     }
     return res.status(500).json({ message: "Internal Server Error", error });
   }
-};
-
-const PISTON_EXECUTE_URL = "https://emkc.org/api/v2/piston/execute";
-
-const PISTON_LANGUAGE_MAP: Record<string, string> = {
-  cpp: "cpp",
-  java: "java",
-  python: "python",
-  javascript: "javascript",
 };
 
 export const runCode = async (req: Request, res: Response) => {
@@ -107,49 +73,32 @@ export const runCode = async (req: Request, res: Response) => {
     const { value, error } = bodySchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
 
-    const pistonLanguage = PISTON_LANGUAGE_MAP[value.language] ?? value.language;
+    const result = await defaultExecutionProvider.execute({
+      language: value.language,
+      code: value.code,
+      stdin: value.stdin ?? "",
+    });
 
-    const response = await axios.post(
-      PISTON_EXECUTE_URL,
-      {
-        language: pistonLanguage,
-        version: "*",
-        files: [{ content: value.code }],
-        stdin: value.stdin ?? "",
-      },
-      { timeout: 15000 },
-    );
-
-    const data = response.data;
-    const run = data?.run;
-    if (!run) {
-      return res.status(502).json({
-        message: "Unexpected response from code execution service",
-      });
-    }
-
-    const stdout = run.stdout ?? "";
-    const stderr = run.stderr ?? "";
+    const stdout = result.run.stdout ?? "";
+    const stderr = [
+      result.compile?.stderr,
+      result.run.stderr,
+    ]
+      .filter((s) => s && String(s).trim().length > 0)
+      .join("\n");
     const combined =
       stderr.trim().length > 0 ? `${stderr}\n${stdout}` : stdout;
 
     return res.status(200).json({
-      stdout: run.stdout ?? "",
-      stderr: run.stderr ?? "",
+      stdout,
+      stderr,
       output: combined,
-      code: run.code,
-      signal: run.signal ?? null,
+      code: result.run.code,
+      signal: result.run.signal ?? null,
     });
   } catch (err) {
-    if (axios.isAxiosError(err)) {
-      const status = err.response?.status ?? 502;
-      const message =
-        err.response?.data?.message ??
-        err.message ??
-        "Code execution service error";
-      return res.status(status).json({
-        message: status === 502 ? "Code execution service unavailable" : message,
-      });
+    if (err instanceof CodeExecutionError) {
+      return res.status(err.statusCode).json({ message: err.message });
     }
     return res.status(500).json({ message: "Internal Server Error", error: {} });
   }
@@ -170,14 +119,103 @@ export const getProblem = async (req: Request, res: Response) => {
     const execPath =
       envExec ?? (fs.existsSync(macChrome) ? macChrome : undefined);
 
-    const data = await getProblemFromCodeforces(value.contestId, value.index, {
-      executablePath: execPath,
-    });
-    return res.status(200).json(data);
+    try {
+      const data = await getProblemFromCodeforces(value.contestId, value.index, {
+        executablePath: execPath,
+      });
+      return res.status(200).json(data);
+    } catch (scrapeError) {
+      const errMsg =
+        scrapeError instanceof Error
+          ? scrapeError.message
+          : String(scrapeError);
+      console.error(
+        `[getProblem] scrape failed for ${value.contestId}/${value.index}:`,
+        errMsg,
+      );
+
+      // Cloudflare often blocks headless Chrome. Fall back to CF API metadata
+      // so the UI can still show title/tags/rating + an external link.
+      const fallback = await getProblemMetadataFallback(
+        value.contestId,
+        value.index,
+        errMsg,
+      );
+      return res.status(200).json(fallback);
+    }
   } catch (error) {
-    return res.status(500).json({ message: "Internal Server Error", error });
+    console.error("[getProblem] unexpected error:", error);
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+    return res.status(500).json({ message });
   }
 };
+
+async function getProblemMetadataFallback(
+  contestId: number,
+  index: string,
+  reason: string,
+) {
+  const problemUrl = `https://codeforces.com/problemset/problem/${contestId}/${index}`;
+  let title = `${index}`;
+  let tags: string[] = [];
+  let rating: number | null = null;
+
+  try {
+    const resp = await axios.get(
+      "https://codeforces.com/api/problemset.problems",
+      { timeout: 10000 },
+    );
+    if (resp.data?.status === "OK") {
+      const match = (resp.data.result?.problems ?? []).find(
+        (p: { contestId?: number; index?: string }) =>
+          p.contestId === contestId &&
+          String(p.index).toUpperCase() === String(index).toUpperCase(),
+      );
+      if (match) {
+        title = `${match.index}. ${match.name}`;
+        tags = match.tags ?? [];
+        rating = match.rating ?? null;
+      }
+    }
+  } catch (apiError) {
+    console.error("[getProblem] CF API metadata fallback failed:", apiError);
+  }
+
+  const blockedByCloudflare = /cloudflare|just a moment|403/i.test(reason);
+
+  return {
+    title,
+    timeLimit: "Unknown",
+    memoryLimit: "Unknown",
+    inputFile: "standard input",
+    outputFile: "standard output",
+    description: blockedByCloudflare
+      ? "Codeforces blocked automated access to the problem statement (Cloudflare). Open the problem on Codeforces to read the full statement."
+      : `Problem statement could not be scraped (${reason}). Open the problem on Codeforces.`,
+    inputSpecification: "",
+    outputSpecification: "",
+    sampleTests: [] as Array<{ input: string; output: string }>,
+    note: "",
+    tags,
+    difficulty: rating != null ? String(rating) : "Unknown",
+    statistics: { solvedCount: 0, attemptedCount: 0, accuracy: 0 },
+    raw: {
+      descriptionHtml: "",
+      inputSpecHtml: "",
+      outputSpecHtml: "",
+      noteHtml: "",
+    },
+    contestId,
+    index,
+    problemUrl,
+    fetchedAt: new Date().toISOString(),
+    scrapeFailed: true,
+    scrapeError: blockedByCloudflare
+      ? "Cloudflare challenge blocked Puppeteer"
+      : reason,
+  };
+}
 
 export const submitProblem = async (req: Request, res: Response) => {
   try {
@@ -224,12 +262,6 @@ export const submitProblem = async (req: Request, res: Response) => {
     });
 
     const attemptCount = (currentAttempt?.attemptCount || 0) + 1;
-    const bestExecutionTime = solved
-      ? Math.min(
-          currentAttempt?.bestExecutionTime || Infinity,
-          value.executionTime || Infinity,
-        )
-      : currentAttempt?.bestExecutionTime || null;
 
     // Create external submission
     await createExternalSubmission(
@@ -243,15 +275,14 @@ export const submitProblem = async (req: Request, res: Response) => {
       value.programmingLanguage,
     );
 
-    // Update user problem attempt
-    await upsertUserProblemAttempt(
+    await recordProblemAttempt({
       userId,
-      value.problemId,
-      value.platform,
+      externalProblemId: value.problemId,
+      platform: value.platform,
       solved,
-      attemptCount,
-      bestExecutionTime,
-    );
+      source: "external_sync",
+      executionTimeMs: value.executionTime ?? null,
+    });
 
     if (solved) {
       const solvedCount = await prisma.userProblemAttempt.count({
@@ -427,12 +458,6 @@ export const syncSubmissionFromCodeforces = async (
     });
 
     const attemptCount = (currentAttempt?.attemptCount ?? 0) + 1;
-    const bestExecutionTime = solved
-      ? Math.min(
-          currentAttempt?.bestExecutionTime ?? Infinity,
-          executionTime || Infinity,
-        )
-      : currentAttempt?.bestExecutionTime ?? null;
 
     try {
       await createExternalSubmission(
@@ -457,14 +482,14 @@ export const syncSubmissionFromCodeforces = async (
       throw createErr;
     }
 
-    await upsertUserProblemAttempt(
+    await recordProblemAttempt({
       userId,
-      problemId,
-      "Codeforces",
+      externalProblemId: problemId,
+      platform: "Codeforces",
       solved,
-      attemptCount,
-      bestExecutionTime,
-    );
+      source: "external_sync",
+      executionTimeMs: executionTime || null,
+    });
 
     if (solved) {
       const solvedCount = await prisma.userProblemAttempt.count({
@@ -545,21 +570,44 @@ export const syncSubmissionFromCodeforces = async (
   }
 };
 
-// Get user's favourite problems list (enriched with title, rating, tags for Codeforces)
+// Get user's favourite problems list (enriched with title, rating, tags)
 export const getFavouriteProblems = async (req: Request, res: Response) => {
   try {
     // @ts-expect-error userId is defined
     const userId = req.user?.id as string;
 
     const favouriteList = await getUserFavouriteProblemsFromDB(userId);
-    let cfMap: Awaited<ReturnType<typeof getCodeforcesProblemsMap>> = new Map();
+
     const codeforcesFavs = favouriteList.filter(
-      (f: { platform: string }) => f.platform === "Codeforces"
+      (f: { platform: string }) => f.platform === "Codeforces",
     );
+    const codepathFavs = favouriteList.filter(
+      (f: { platform: string }) => f.platform === "CodePath",
+    );
+
+    let cfMap: Awaited<ReturnType<typeof getCodeforcesProblemsMap>> = new Map();
     if (codeforcesFavs.length > 0) {
       cfMap = await getCodeforcesProblemsMap();
     }
-    const enriched = favouriteList.map((f: any) => {
+
+    const codepathRows =
+      codepathFavs.length > 0
+        ? await getPublishedCodePathProblemsByIdsFromDB(
+            codepathFavs.map((f: { externalProblemId: string }) => f.externalProblemId),
+          )
+        : [];
+    const codepathMap = new Map(codepathRows.map((p) => [p.id, p]));
+
+    const parseTags = (tagsJson: string): string[] => {
+      try {
+        const parsed = JSON.parse(tagsJson);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const enriched = favouriteList.map((f: { id: string; externalProblemId: string; platform: string; createdAt: Date }) => {
       const base = {
         id: f.id,
         externalProblemId: f.externalProblemId,
@@ -577,6 +625,16 @@ export const getFavouriteProblems = async (req: Request, res: Response) => {
           index: details.index,
         };
       }
+      if (f.platform === "CodePath" && codepathMap.has(f.externalProblemId)) {
+        const details = codepathMap.get(f.externalProblemId)!;
+        return {
+          ...base,
+          title: details.title,
+          tags: parseTags(details.tags),
+          rating: details.rating,
+          slug: details.slug,
+        };
+      }
       return base;
     });
     return res.status(200).json(enriched);
@@ -589,7 +647,7 @@ export const addProblemToFavourite = async (req: Request, res: Response) => {
   try {
     const inputSchema = Joi.object({
       externalProblemId: Joi.string().required(),
-      platform: Joi.string().valid("Codeforces", "LeetCode").required(),
+      platform: Joi.string().valid("Codeforces", "LeetCode", "CodePath").required(),
     });
     const { value, error } = inputSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.message });
@@ -598,6 +656,15 @@ export const addProblemToFavourite = async (req: Request, res: Response) => {
 
     // @ts-expect-error userId is defined
     const userId = req.user?.id as string;
+
+    if (platform === "CodePath") {
+      const problem = await getCodePathProblemByIdFromDB(externalProblemId);
+      if (!problem || problem.status !== "PUBLISHED") {
+        return res.status(404).json({
+          message: "CodePath problem not found or not published",
+        });
+      }
+    }
 
     const recordCheck = await checkFavouriteExistForUser(
       userId,

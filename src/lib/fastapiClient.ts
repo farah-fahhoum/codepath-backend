@@ -6,6 +6,8 @@ import {
   ReferenceCurateResponse,
   RoadmapGenerateRequest,
   RoadmapGenerateResponse,
+  SkillAssessmentRequest,
+  SkillAssessmentResponse,
 } from "../types/fastapi.type";
 
 const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://127.0.0.1:8000";
@@ -26,9 +28,13 @@ const fastapiClient = axios.create({
   timeout: 20000,
 });
 
-export async function postFastAPI<T>(path: string, payload: unknown): Promise<T> {
+export async function postFastAPI<T>(
+  path: string,
+  payload: unknown,
+  timeoutMs = 20000,
+): Promise<T> {
   try {
-    const { data } = await fastapiClient.post(path, payload);
+    const { data } = await fastapiClient.post(path, payload, { timeout: timeoutMs });
     // FastAPI now wraps responses in { success, message, data }; unwrap to data.
     if (data && typeof data === "object" && "success" in data && "data" in data) {
       return (data as { data: T }).data;
@@ -37,10 +43,17 @@ export async function postFastAPI<T>(path: string, payload: unknown): Promise<T>
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        const body = error.response.data as { detail?: string; message?: string } | undefined;
+        const body = error.response.data as
+          | { detail?: string | { message?: string }; message?: string; success?: boolean }
+          | undefined;
+        const detailRaw = body?.detail;
         const detail =
-          body?.detail ||
-          body?.message ||
+          (typeof detailRaw === "string" && detailRaw) ||
+          (detailRaw &&
+            typeof detailRaw === "object" &&
+            typeof detailRaw.message === "string" &&
+            detailRaw.message) ||
+          (typeof body?.message === "string" && body.message) ||
           error.response.statusText ||
           `AI service error (${error.response.status})`;
         throw new FastAPIError(error.response.status, String(detail));
@@ -58,10 +71,15 @@ export async function postFastAPI<T>(path: string, payload: unknown): Promise<T>
 }
 
 export const generateRoadmap = (payload: RoadmapGenerateRequest): Promise<RoadmapGenerateResponse> =>
-  postFastAPI<RoadmapGenerateResponse>("/api/roadmap/generate", payload);
+  postFastAPI<RoadmapGenerateResponse>("/api/roadmap/generate", payload, 120000);
 
 export const selectContestProblems = (payload: ContestSelectionRequest): Promise<ContestSelectionResponse> =>
   postFastAPI<ContestSelectionResponse>("/api/contest/select-problems", payload);
 
 export const curateReference = (payload: ReferenceCurateRequest): Promise<ReferenceCurateResponse> =>
   postFastAPI<ReferenceCurateResponse>("/api/reference/curate", payload);
+
+export const evaluateSkillAssessment = (
+  payload: SkillAssessmentRequest,
+): Promise<SkillAssessmentResponse> =>
+  postFastAPI<SkillAssessmentResponse>("/api/assessment/evaluate", payload, 20000);

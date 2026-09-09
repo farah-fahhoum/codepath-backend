@@ -14,7 +14,13 @@ import {
   getMenteeBookingsFromDB,
   updateBookingStatusInDB,
   upsertCoachProfileInDB,
+  updateCoachProfileByIdInDB,
+  updateCoachAvatarInDB,
 } from "../repositories/coach.repo";
+import {
+  avatarPublicPath,
+  deleteAvatarFile,
+} from "../lib/avatarStorage";
 import { checkUserRoleForAuth } from "../repositories/user.repo";
 import { prisma } from "../lib/prisma";
 import { BookingStatusValue } from "../types/coach.type";
@@ -102,6 +108,105 @@ export const createCoachAccount = async (req: Request, res: Response) => {
     if (error?.code === "P2002") {
       return res.status(409).json({ message: "Username or email already in use" });
     }
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const uploadCoachAvatar = async (req: Request, res: Response) => {
+  try {
+    const paramSchema = Joi.object({ id: Joi.string().required() });
+    const { value: params, error: paramError } = paramSchema.validate(req.params);
+    if (paramError) return res.status(400).json({ message: paramError.message });
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ message: "No image file provided" });
+
+    const existing = await getCoachByIdFromDB(params.id);
+    if (!existing) {
+      await deleteAvatarFile(avatarPublicPath(file.filename));
+      return res.status(404).json({ message: "Coach not found" });
+    }
+
+    const previousAvatarUrl = existing.user.profile?.avatarUrl ?? null;
+    const newAvatarUrl = avatarPublicPath(file.filename);
+    const coach = await updateCoachAvatarInDB(params.id, newAvatarUrl);
+    if (!coach) {
+      await deleteAvatarFile(newAvatarUrl);
+      return res.status(404).json({ message: "Coach not found" });
+    }
+
+    if (previousAvatarUrl && previousAvatarUrl !== newAvatarUrl) {
+      await deleteAvatarFile(previousAvatarUrl);
+    }
+
+    return res.status(200).json({
+      message: "Coach avatar uploaded",
+      coach,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const deleteCoachAvatar = async (req: Request, res: Response) => {
+  try {
+    const paramSchema = Joi.object({ id: Joi.string().required() });
+    const { value: params, error: paramError } = paramSchema.validate(req.params);
+    if (paramError) return res.status(400).json({ message: paramError.message });
+
+    const existing = await getCoachByIdFromDB(params.id);
+    if (!existing) return res.status(404).json({ message: "Coach not found" });
+
+    const previousAvatarUrl = existing.user.profile?.avatarUrl ?? null;
+    const coach = await updateCoachAvatarInDB(params.id, null);
+    if (!coach) return res.status(404).json({ message: "Coach not found" });
+
+    if (previousAvatarUrl) {
+      await deleteAvatarFile(previousAvatarUrl);
+    }
+
+    return res.status(200).json({
+      message: "Coach avatar removed",
+      coach,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+
+export const updateCoachProfile = async (req: Request, res: Response) => {
+  try {
+    const paramSchema = Joi.object({ id: Joi.string().required() });
+    const { value: params, error: paramError } = paramSchema.validate(req.params);
+    if (paramError) return res.status(400).json({ message: paramError.message });
+
+    const bodySchema = Joi.object({
+      name: Joi.string().trim().min(1).optional(),
+      specialty: Joi.string().trim().min(1).optional(),
+      bio: Joi.string().optional().allow(""),
+      hourlyRate: Joi.number().positive().optional().allow(null),
+      isAvailable: Joi.boolean().optional(),
+      bookingLink: Joi.string().uri().optional().allow("", null),
+    }).min(1);
+    const { value: body, error: bodyError } = bodySchema.validate(req.body);
+    if (bodyError) return res.status(400).json({ message: bodyError.message });
+
+    const coach = await updateCoachProfileByIdInDB(params.id, {
+      name: body.name,
+      specialty: body.specialty,
+      bio: body.bio,
+      hourlyRate: body.hourlyRate,
+      isAvailable: body.isAvailable,
+      bookingLink: body.bookingLink ?? undefined,
+    });
+
+    if (!coach) return res.status(404).json({ message: "Coach not found" });
+
+    return res.status(200).json({
+      message: "Coach profile updated",
+      coach,
+    });
+  } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error });
   }
 };

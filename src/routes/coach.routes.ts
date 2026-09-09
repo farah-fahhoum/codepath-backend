@@ -1,10 +1,14 @@
 import express from "express";
 import { authorize } from "../middlewares/authorization";
+import { coachAvatarUploadMiddleware } from "../middlewares/coachAvatarUpload";
 import {
   calWebhook,
   createBooking,
   createCoachAccount,
   createOrUpdateMyCoachProfile,
+  updateCoachProfile,
+  uploadCoachAvatar,
+  deleteCoachAvatar,
   getCoach,
   getCoachBookings,
   getCoaches,
@@ -48,6 +52,27 @@ router.patch(
 
 // Coach listing
 router.get("/", authorize(["Mentee", "Admin"], false), getCoaches);
+router.post(
+  "/:id/avatar",
+  authorize(["Admin"], false),
+  (req, res, next) => {
+    coachAvatarUploadMiddleware(req, res, (error) => {
+      if (error) {
+        return res.status(400).json({
+          message: error instanceof Error ? error.message : "Invalid image upload",
+        });
+      }
+      return next();
+    });
+  },
+  uploadCoachAvatar,
+);
+router.delete(
+  "/:id/avatar",
+  authorize(["Admin"], false),
+  deleteCoachAvatar,
+);
+router.patch("/:id", authorize(["Admin"], false), updateCoachProfile);
 router.get("/:id", authorize(["Mentee", "Admin"], false), getCoach);
 router.post(
   "/:id/bookings",

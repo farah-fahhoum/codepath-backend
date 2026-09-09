@@ -20,6 +20,9 @@ import {
   getUserRoadmapSummaryFromDB,
   getUserCurrentFocusFromDB,
   getUserAchievementsFromDB,
+  syncRoadmapAchievementsForUser,
+  syncRoadmapProgressForUser,
+  activateRoadmapForUserSkillProfile,
 } from "../repositories/roadmap.repo";
 import { getExternalAccountIntegrationFromDB } from "../repositories/externalAccount.repo";
 import {
@@ -32,6 +35,39 @@ import {
   getLatestSkillLevelIdFromDB,
 } from "../repositories/roadmapAI.repo";
 import { FastAPIError, generateRoadmap } from "../lib/fastapiClient";
+import { resolveFastApiTopicName } from "../lib/fastapiTopics";
+import { getMenteeSkillProfile } from "../services/assessment.service";
+import type { MenteeSkillProfile } from "../types/assessment.type";
+
+function buildTopicOverviewFromSkillProfile(
+  skillProfile: MenteeSkillProfile,
+  topic: string,
+  aiInsights?: string,
+) {
+  const topicPerformance =
+    skillProfile.sources.codepath.topicPerformance.find(
+      (entry) => entry.topic.toLowerCase() === topic.toLowerCase(),
+    );
+
+  return {
+    proficiency_level: skillProfile.tier,
+    accuracy_rate:
+      topicPerformance?.accuracy ??
+      skillProfile.sources.codepath.accuracy ??
+      0,
+    performance_breakdown: {
+      roadmap_problems: 0,
+      general_problems: topicPerformance?.solved ?? 0,
+      wrong_submissions: topicPerformance
+        ? Math.max(0, topicPerformance.attempts - topicPerformance.solved)
+        : 0,
+      accepted_solutions: topicPerformance?.solved ?? 0,
+    },
+    ai_insights:
+      aiInsights ??
+      "Codeforces topic analytics are unavailable for this module title. Showing CodePath stats instead.",
+  };
+}
 
 export const getRoadmaps = async (req: Request, res: Response) => {
   try {
@@ -316,81 +352,96 @@ export const getMenteeTopicPerformanceOverview = async (
     }
 
     const externalAccount = await getExternalAccountIntegrationFromDB(userId);
-    if (!externalAccount || !externalAccount.handle) {
-      return res.status(404).json({
-        message:
-          "User handle not found. Please connect your coding platform account.",
-      });
+    const skillProfile = await getMenteeSkillProfile(userId);
+
+    if (!externalAccount?.handle) {
+      return res.status(200).json(
+        ok(
+          buildTopicOverviewFromSkillProfile(
+            skillProfile,
+            topic,
+            "Connect Codeforces for deeper AI-powered topic insights.",
+          ),
+        ),
+      );
     }
 
     const userHandle = externalAccount.handle;
+    const fastApiTopic = resolveFastApiTopicName(topic);
 
-    // Call both FastAPI endpoints in parallel
-    const [performanceResponse, aiSummaryResponse] = await Promise.all([
-      // Topic performance endpoint
-      axios.get(
-        `${process.env.FASTAPI_BASE_URL}/topic/${topic}?user_handle=${userHandle}`,
+    if (!fastApiTopic) {
+      return res.status(200).json(
+        ok(buildTopicOverviewFromSkillProfile(skillProfile, topic)),
+      );
+    }
+
+    const encodedTopic = encodeURIComponent(fastApiTopic);
+    const baseUrl = process.env.FASTAPI_BASE_URL;
+
+    let performanceResponse;
+    try {
+      performanceResponse = await axios.get(
+        `${baseUrl}/topic/${encodedTopic}?user_handle=${encodeURIComponent(userHandle)}`,
         {
           headers: { accept: "application/json" },
           timeout: 10000,
         },
-      ),
-      // AI summary endpoint
-      axios.get(
-        `${process.env.FASTAPI_BASE_URL}/topic/${topic}/ai-summary?user_handle=${userHandle}`,
+      );
+    } catch (performanceError) {
+      if (
+        axios.isAxiosError(performanceError) &&
+        performanceError.response?.status === 404
+      ) {
+        return res.status(200).json(
+          ok(buildTopicOverviewFromSkillProfile(skillProfile, topic)),
+        );
+      }
+      throw performanceError;
+    }
+
+    let aiData: Record<string, unknown> | null = null;
+    try {
+      const aiSummaryResponse = await axios.get(
+        `${baseUrl}/topic/${encodedTopic}/ai-summary?user_handle=${encodeURIComponent(userHandle)}`,
         {
           headers: { accept: "application/json" },
           timeout: 15000,
         },
-      ),
-    ]);
+      );
+      aiData =
+        aiSummaryResponse.data?.data ?? aiSummaryResponse.data ?? null;
+    } catch (aiError) {
+      if (
+        !axios.isAxiosError(aiError) ||
+        (aiError.response?.status !== 404 && aiError.response?.status !== 422)
+      ) {
+        console.warn(
+          "AI topic summary unavailable for topic:",
+          fastApiTopic,
+          aiError,
+        );
+      }
+    }
 
-    // Combine both responses (each FastAPI body is now { success, message, data })
-    const topicData = performanceResponse.data?.data ?? performanceResponse.data;
-    const aiData = aiSummaryResponse.data?.data ?? aiSummaryResponse.data;
+    const topicData =
+      performanceResponse.data?.data ?? performanceResponse.data;
     const combinedResponse = {
       ...topicData,
-      ai_insights: aiData?.ai_insights,
-      performance_breakdown: aiData?.performance,
+      ai_insights:
+        (aiData?.ai_insights as string | undefined) ??
+        "AI insights are temporarily unavailable for this topic.",
+      performance_breakdown:
+        (aiData?.performance as Record<string, unknown> | undefined) ??
+        topicData?.performance_breakdown,
     };
 
     return res.status(200).json(ok(combinedResponse));
   } catch (error) {
     console.error("Error fetching topic performance data from FastAPI:", error);
 
-    // Try to get at least the basic performance data if AI summary fails
-    // try {
-    //   // @ts-expect-error userId is defined
-    //   const userId = req.user?.id as string;
-    //   const { topic } = req.query;
-    //   const externalAccount = await getExternalAccountIntegrationFromDB(userId);
-
-    //   if (externalAccount && externalAccount.handle) {
-    //     const performanceResponse = await axios.get(
-    //       `${process.env.FASTAPI_BASE_URL}/topic/${topic}?user_handle=${externalAccount.handle}`,
-    //       {
-    //         headers: { accept: "application/json" },
-    //         timeout: 10000,
-    //       },
-    //     );
-
-    //     return res.status(200).json({
-    //       ...performanceResponse.data,
-    //       ai_insights:
-    //         "AI insights are temporarily unavailable. Please try again later.",
-    //       performance_breakdown: {},
-    //     });
-    //   }
-    // } catch (fallbackError) {
-    //   return res.status(500).json({
-    //     message: "Failed to fetch topic performance data",
-    //     error: error.message,
-    //   });
-    // }
-
     return res.status(500).json({
       message: "Failed to fetch topic performance data",
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 };
@@ -489,6 +540,8 @@ export const getMyRoadmapModulesWithProgress = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    await activateRoadmapForUserSkillProfile(userId);
+    await syncRoadmapProgressForUser(userId);
     const focusData = await getUserCurrentFocusFromDB(userId);
 
     if (!focusData) {
@@ -536,11 +589,13 @@ export const generateMyRoadmap = async (req: Request, res: Response) => {
       });
     }
 
-    const [assessments, quizPerformance, codeforcesStats] = await Promise.all([
-      getUserSkillAssessmentsFromDB(userId),
-      getUserQuizPerformanceFromDB(userId),
-      getUserCodeforcesStatsFromDB(userId),
-    ]);
+    const [assessments, quizPerformance, codeforcesStats, skillProfile] =
+      await Promise.all([
+        getUserSkillAssessmentsFromDB(userId),
+        getUserQuizPerformanceFromDB(userId),
+        getUserCodeforcesStatsFromDB(userId),
+        getMenteeSkillProfile(userId, { forceRefresh: true }),
+      ]);
 
     let response;
     try {
@@ -554,6 +609,28 @@ export const generateMyRoadmap = async (req: Request, res: Response) => {
         })),
         quizPerformance,
         codeforcesStats,
+        codepathStats: {
+          solvedCount: skillProfile.sources.codepath.solvedCount,
+          attemptedCount: skillProfile.sources.codepath.attemptedCount,
+          avgSolvedRating: skillProfile.sources.codepath.avgSolvedRating,
+          accuracy: skillProfile.sources.codepath.accuracy,
+          topicPerformance: skillProfile.sources.codepath.topicPerformance,
+        },
+        contestStats: {
+          participatedCount: skillProfile.sources.contest.participatedCount,
+          finishedCount: skillProfile.sources.contest.finishedCount,
+          avgSolveRate: skillProfile.sources.contest.avgSolveRate,
+          avgProblemRating: skillProfile.sources.contest.avgProblemRating,
+          totalContestSolves: skillProfile.sources.contest.totalContestSolves,
+        },
+        placement: skillProfile.sources.placement
+          ? {
+              skillLevelTitle: skillProfile.sources.placement.skillLevelTitle,
+              assessmentType: skillProfile.sources.placement.assessmentType,
+              score: skillProfile.sources.placement.score,
+              assessedAt: skillProfile.sources.placement.assessedAt,
+            }
+          : null,
       });
     } catch (serviceError) {
       if (serviceError instanceof FastAPIError) {
@@ -570,7 +647,8 @@ export const generateMyRoadmap = async (req: Request, res: Response) => {
       });
     }
 
-    const targetSkillLevelId = await getLatestSkillLevelIdFromDB(userId);
+    const targetSkillLevelId =
+      skillProfile.skillLevelId ?? (await getLatestSkillLevelIdFromDB(userId));
     if (targetSkillLevelId == null) {
       return res.status(500).json({
         message: "No skill level configured for the platform",
@@ -596,6 +674,8 @@ export const generateMyRoadmap = async (req: Request, res: Response) => {
       );
 
     await attachProblemsToPersonalModulesInDB(createdModules);
+    await syncRoadmapProgressForUser(userId);
+    await syncRoadmapAchievementsForUser(userId);
 
     return res.status(201).json(ok({
       roadmap: {

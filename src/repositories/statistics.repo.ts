@@ -6,93 +6,61 @@ import {
   getExternalAccountIntegrationFromDB,
   getCodeforcesHandleForUser,
 } from "./externalAccount.repo";
+import {
+  getMenteeSkillProfile,
+  getMenteeCodePathLevelFromProfile,
+  resolveCodeforcesProblemsSolvedCount,
+} from "../services/assessment.service";
+import {
+  countMenteesBySnapshotTierFromDB,
+  getSkillLevelPreferenceFromDB,
+} from "./assessment.repo";
 import { getCodeforcesProblemsMap } from "./problem.repo";
+import { fetchAllCodeforcesSubmissions } from "../lib/codeforcesClient";
+import type { SkillLevelPreference } from "../types/assessment.type";
 
-const CF_API_BASE = "https://codeforces.com/api";
-const CF_ACCEPTED = ["AC", "Accepted", "OK"];
+const CF_ACCEPTED_VERDICT_SET = new Set(["AC", "ACCEPTED", "OK"]);
 
-/** Fetch Codeforces user rating from user.info. Returns null on error or 502. */
-async function fetchCodeforcesUserInfo(
-  handle: string,
-): Promise<{ rating: number } | null> {
+function parseTagsJson(tagsJson: string): string[] {
   try {
-    const resp = await axios.get(`${CF_API_BASE}/user.info`, {
-      params: { handles: handle },
-      timeout: 10000,
-    });
-    if (resp.data?.status !== "OK" || !Array.isArray(resp.data?.result) || resp.data.result.length === 0)
-      return null;
-    const u = resp.data.result[0];
-    const rating = u.rating ?? u.maxRating ?? 0;
-    return { rating: Number(rating) || 0 };
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status !== undefined)
-      console.error("Codeforces user.info fetch failed:", status);
-    return null;
+    const parsed = JSON.parse(tagsJson);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
   }
 }
 
-/** Count distinct accepted problems from Codeforces user.status (paginated). */
-async function fetchCodeforcesAcceptedCount(handle: string): Promise<number> {
-  const solvedIds = new Set<string>();
-  try {
-    let from = 1;
-    for (let page = 0; page < 5; page++) {
-      const resp = await axios.get(`${CF_API_BASE}/user.status`, {
-        params: { handle, from, count: 1000 },
-        timeout: 12000,
-      });
-      if (resp.data?.status !== "OK" || !Array.isArray(resp.data?.result))
-        break;
-      const list = resp.data.result as Array<{
-        verdict?: string;
-        problem?: { contestId?: number; index?: string };
-      }>;
-      for (const s of list) {
-        if (s.verdict && CF_ACCEPTED.includes(s.verdict) && s.problem?.contestId != null && s.problem?.index != null)
-          solvedIds.add(`${s.problem.contestId}${s.problem.index}`);
-      }
-      if (list.length < 1000) break;
-      from += list.length;
-      await new Promise((r) => setTimeout(r, 400));
-    }
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status !== undefined)
-      console.error("Codeforces user.status fetch failed:", status);
-  }
-  return solvedIds.size;
+function isAcceptedVerdict(verdict?: string | null): boolean {
+  if (!verdict) return false;
+  return CF_ACCEPTED_VERDICT_SET.has(verdict.trim().toUpperCase());
 }
 
-/** Total submissions and accepted count from Codeforces (one page for accuracy). */
-async function fetchCodeforcesSubmissionStats(
-  handle: string,
-): Promise<{ accepted: number; total: number } | null> {
-  try {
-    const resp = await axios.get(`${CF_API_BASE}/user.status`, {
-      params: { handle, from: 1, count: 1000 },
-      timeout: 12000,
-    });
-    if (resp.data?.status !== "OK" || !Array.isArray(resp.data?.result))
-      return null;
-    const list = resp.data.result as Array<{ verdict?: string }>;
-    const accepted = list.filter((s) => s.verdict && CF_ACCEPTED.includes(s.verdict)).length;
-    return { accepted, total: list.length };
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status !== undefined)
-      console.error("Codeforces user.status (stats) fetch failed:", status);
-    return null;
+function codeforcesProblemMapKey(problem?: {
+  contestId?: number | null;
+  index?: string | null;
+}): string | null {
+  if (problem?.contestId != null && problem.index) {
+    return `${problem.contestId}${problem.index}`;
   }
+  return null;
 }
 
-function tierFromCodeforcesRating(rating: number): string {
-  if (rating < 1200) return "Beginner";
-  if (rating < 1400) return "Intermediate";
-  if (rating < 1600) return "Advanced";
-  if (rating < 1900) return "Expert";
-  return "Master";
+function resolveCodePrintSources(preference: SkillLevelPreference): {
+  includeCodepath: boolean;
+  includeCodeforces: boolean;
+} {
+  switch (preference) {
+    case "codepath":
+    case "contest":
+    case "placement":
+      return { includeCodepath: true, includeCodeforces: false };
+    case "codeforces":
+      return { includeCodepath: false, includeCodeforces: true };
+    case "blended":
+    case "auto":
+    default:
+      return { includeCodepath: true, includeCodeforces: true };
+  }
 }
 
 export const getTotalMentees = async (): Promise<number> => {
@@ -122,40 +90,7 @@ export const getTotalSubmissions = async (): Promise<number> => {
 export const getMenteesTotalInEachLevel = async (): Promise<
   { level: string; total: number }[]
 > => {
-  // First, get all skill levels from the database
-  const skillLevels = await prisma.skillLevel.findMany({
-    select: { id: true, title: true },
-  });
-
-  // Get the mentee role ID
-  const menteeRole = await prisma.role.findFirst({
-    where: { title: "Mentee" },
-    select: { id: true },
-  });
-
-  if (!menteeRole) {
-    return skillLevels.map((level) => ({ level: level.title, total: 0 }));
-  }
-
-  // For each skill level, count the number of mentees with that skill level
-  const results = await Promise.all(
-    skillLevels.map(async (level) => {
-      const menteeCount = await prisma.userSkillAssessment.count({
-        where: {
-          skillLevelId: level.id,
-          user: {
-            roleId: menteeRole.id,
-          },
-        },
-      });
-      return {
-        level: level.title,
-        total: menteeCount,
-      };
-    }),
-  );
-
-  return results;
+  return countMenteesBySnapshotTierFromDB();
 };
 
 export const getTop3PopularTopics = async (): Promise<
@@ -243,157 +178,156 @@ export const getTop3PopularTopics = async (): Promise<
 export const getMenteeCodePathRating = async (
   userId: string,
 ): Promise<number> => {
-  const cfHandle = await getCodeforcesHandleForUser(userId);
-  if (cfHandle) {
-    const info = await fetchCodeforcesUserInfo(cfHandle);
-    if (info != null) return info.rating;
-  }
-  const totalSolvedProblems = await prisma.userSkillAssessment.findFirst({
-    where: { userId: userId },
-    select: { score: true },
-  });
-  return totalSolvedProblems?.score || 0;
+  const profile = await getMenteeSkillProfile(userId);
+  return profile.rating ?? 0;
 };
 
 export const getMenteeCodePathLevel = async (
   userId: string,
 ): Promise<{ tier: string; rating: number }> => {
-  // Prefer Codeforces when handle is linked
-  const cfHandle = await getCodeforcesHandleForUser(userId);
-  if (cfHandle) {
-    const info = await fetchCodeforcesUserInfo(cfHandle);
-    if (info != null)
-      return { tier: tierFromCodeforcesRating(info.rating), rating: info.rating };
-  }
-
-  // Fallback: other external account + FastAPI
-  const externalAccount = await getExternalAccountIntegrationFromDB(userId);
-  if (externalAccount?.handle) {
-    const userHandle = externalAccount.handle;
-    const fastApiBase = process.env.FASTAPI_BASE_URL?.trim();
-    if (fastApiBase) {
-      try {
-        const response = await axios.get(
-          `${fastApiBase}/dashboard/user/${userHandle}`,
-          {
-            headers: { accept: "application/json" },
-            timeout: 10000,
-          },
-        );
-        const userData = response.data;
-        return {
-          tier: userData.tier || "Not Assessed",
-          rating: userData.rating || 0,
-        };
-      } catch (error) {
-        console.error("Error fetching user tier from FastAPI:", error);
-      }
-    }
-  }
-
-  const skillAssessment = await prisma.userSkillAssessment.findFirst({
-    where: { userId: userId },
-    select: { skillLevel: { select: { title: true } } },
-  });
-  return {
-    tier: skillAssessment?.skillLevel?.title || "Not Assessed",
-    rating: 0,
-  };
+  return getMenteeCodePathLevelFromProfile(userId);
 };
 
 export const getMenteeProblemsSolvedCount = async (
   userId: string,
 ): Promise<number> => {
-  const cfHandle = await getCodeforcesHandleForUser(userId);
-  if (cfHandle) {
-    const cfCount = await fetchCodeforcesAcceptedCount(cfHandle);
-    return cfCount;
-  }
-  const totalSolvedProblems = await prisma.userProblemAttempt.count({
-    where: { userId: userId, solved: true },
-  });
-  return totalSolvedProblems;
+  return resolveCodeforcesProblemsSolvedCount(userId);
 };
 
 export const getMenteeAccuracy = async (userId: string): Promise<number> => {
-  const cfHandle = await getCodeforcesHandleForUser(userId);
-  if (cfHandle) {
-    const stats = await fetchCodeforcesSubmissionStats(cfHandle);
-    if (stats != null && stats.total > 0)
-      return Math.round((stats.accepted / stats.total) * 100);
+  const profile = await getMenteeSkillProfile(userId);
+  if (
+    profile.sources.codeforces.connected &&
+    profile.sources.codeforces.accuracy != null
+  ) {
+    return profile.sources.codeforces.accuracy;
   }
-  const totalAttemptedProblems = await prisma.userProblemAttempt.count({
-    where: { userId: userId },
-  });
-  const totalSolvedProblems = await prisma.userProblemAttempt.count({
-    where: { userId: userId, solved: true },
-  });
-  if (totalAttemptedProblems === 0) return 0;
-  return Math.round((totalSolvedProblems / totalAttemptedProblems) * 100);
+  return profile.sources.codepath.accuracy;
 };
 
 /**
- * CodePrint from DB + Codeforces: aggregate user's submissions and attempts by tag.
+ * CodePrint radar data: aggregate solved problems by tag from CodePath and Codeforces.
  */
 export const getMenteeCodePrintFromDB = async (
   userId: string,
+  preference: SkillLevelPreference = "auto",
 ): Promise<Array<{ topic: string; attempts: number }>> => {
-  const accounts = await prisma.externalAccount.findMany({
-    where: { userId, platform: "Codeforces" },
-    select: { id: true },
-  });
-  const accountIds = accounts.map((a) => a.id.toString());
+  const { includeCodepath, includeCodeforces } = resolveCodePrintSources(preference);
 
-  const [submissions, attempts, cfMap] = await Promise.all([
-    accountIds.length > 0
-      ? prisma.externalSubmission.findMany({
-          where: { externalAccountId: { in: accountIds } },
+  const [cfHandle, cfAccount, cfMap] = await Promise.all([
+    includeCodeforces ? getCodeforcesHandleForUser(userId) : Promise.resolve(null),
+    includeCodeforces
+      ? getExternalAccountIntegrationFromDB(userId)
+      : Promise.resolve(null),
+    includeCodeforces ? getCodeforcesProblemsMap() : Promise.resolve(new Map()),
+  ]);
+
+  const [
+    codePathSubmissions,
+    codePathAttempts,
+    codeforcesAttempts,
+    externalSubmissions,
+  ] = await Promise.all([
+    includeCodepath
+      ? prisma.codePathSubmission.findMany({
+          where: { userId, verdict: "AC" },
           select: { problemId: true },
         })
       : [],
-    prisma.userProblemAttempt.findMany({
-      where: { userId, platform: "Codeforces" },
-      select: { externalProblemId: true, attemptCount: true },
-    }),
-    getCodeforcesProblemsMap(),
+    includeCodepath
+      ? prisma.userProblemAttempt.findMany({
+          where: { userId, platform: "CodePath", solved: true },
+          select: { externalProblemId: true },
+        })
+      : [],
+    includeCodeforces
+      ? prisma.userProblemAttempt.findMany({
+          where: { userId, platform: "Codeforces", solved: true },
+          select: { externalProblemId: true },
+        })
+      : [],
+    includeCodeforces && cfAccount
+      ? prisma.externalSubmission.findMany({
+          where: {
+            externalAccountId: cfAccount.id.toString(),
+            verdict: { in: ["AC", "Accepted", "OK"] },
+          },
+          select: { problemId: true },
+        })
+      : [],
   ]);
 
   const byTag = new Map<string, number>();
 
-  const addForTags = (tags: string[], weight: number) => {
+  const addForTags = (tags: string[]) => {
     for (const tag of tags) {
-      if (tag && tag.trim()) {
-        const t = tag.trim();
-        byTag.set(t, (byTag.get(t) ?? 0) + weight);
-      }
+      const normalized = tag.trim();
+      if (!normalized) continue;
+      byTag.set(normalized, (byTag.get(normalized) ?? 0) + 1);
     }
   };
 
-  for (const s of submissions) {
-    const details = cfMap.get(s.problemId);
-    if (details?.tags?.length) addForTags(details.tags, 1);
-  }
-  for (const a of attempts) {
-    const details = cfMap.get(a.externalProblemId);
-    if (details?.tags?.length) {
-      const weight = Math.max(1, a.attemptCount);
-      addForTags(details.tags, weight);
+  if (includeCodepath) {
+    const solvedCodePathIds = new Set<string>();
+    for (const submission of codePathSubmissions) {
+      solvedCodePathIds.add(submission.problemId);
+    }
+    for (const attempt of codePathAttempts) {
+      solvedCodePathIds.add(attempt.externalProblemId);
+    }
+
+    if (solvedCodePathIds.size > 0) {
+      const problems = await prisma.codePathProblem.findMany({
+        where: { id: { in: [...solvedCodePathIds] } },
+        select: { tags: true },
+      });
+      for (const problem of problems) {
+        addForTags(parseTagsJson(problem.tags));
+      }
     }
   }
 
-  const sorted = Array.from(byTag.entries())
+  if (includeCodeforces) {
+    const solvedCodeforcesIds = new Set<string>();
+    for (const attempt of codeforcesAttempts) {
+      solvedCodeforcesIds.add(attempt.externalProblemId);
+    }
+    for (const submission of externalSubmissions) {
+      solvedCodeforcesIds.add(submission.problemId);
+    }
+
+    if (cfHandle) {
+      try {
+        const liveSubmissions = await fetchAllCodeforcesSubmissions(cfHandle);
+        for (const submission of liveSubmissions) {
+          if (!isAcceptedVerdict(submission.verdict)) continue;
+          const key = codeforcesProblemMapKey(submission.problem);
+          if (key) solvedCodeforcesIds.add(key);
+        }
+      } catch (error) {
+        console.error("Codeforces CodePrint fetch failed:", error);
+      }
+    }
+
+    for (const problemId of solvedCodeforcesIds) {
+      const details = cfMap.get(problemId);
+      if (details?.tags?.length) addForTags(details.tags);
+    }
+  }
+
+  return Array.from(byTag.entries())
     .map(([topic, attempts]) => ({ topic, attempts }))
     .sort((a, b) => b.attempts - a.attempts)
     .slice(0, 6);
-
-  return sorted;
 };
 
 export const getMenteeCodePrint = async (
   userId: string,
 ): Promise<Array<{ topic: string; attempts: number }>> => {
   try {
-    return await getMenteeCodePrintFromDB(userId);
+    const preference =
+      (await getSkillLevelPreferenceFromDB(userId)) as SkillLevelPreference;
+    return await getMenteeCodePrintFromDB(userId, preference ?? "auto");
   } catch (error) {
     console.error("Error building CodePrint from DB:", error);
     return [];
@@ -498,15 +432,28 @@ async function getCodeforcesActivityByDate(
   return byDate;
 }
 
+export interface ActivityByDateBreakdown {
+  codeprint: Record<string, number>;
+  codeforces: Record<string, number>;
+}
+
+function incrementDateCount(
+  target: Record<string, number>,
+  date: Date,
+): void {
+  const key = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  target[key] = (target[key] ?? 0) + 1;
+}
+
 /**
  * Activity by date for consistency tracker.
- * Uses: ExternalSubmission (non-Codeforces), UserProblemAttempt (createdAt), and
- * Codeforces API (user.status) for the user's CF handle when linked.
+ * CodePrint: CodePath submissions, problem attempts, and non-CF external submissions.
+ * Codeforces: live submissions from the linked Codeforces handle.
  */
 export const getActivityByDateForUser = async (
   userId: string,
   year: number,
-): Promise<Record<string, number>> => {
+): Promise<ActivityByDateBreakdown> => {
   const startTs = Math.floor(new Date(year, 0, 1).getTime() / 1000);
   const endTs = Math.floor(
     new Date(year, 11, 31, 23, 59, 59).getTime() / 1000,
@@ -523,65 +470,116 @@ export const getActivityByDateForUser = async (
     .filter((a) => a.platform !== "Codeforces")
     .map((a) => a.id.toString());
 
-  const [submissions, attempts, cfActivity] = await Promise.all([
-    nonCfAccountIds.length > 0
-      ? prisma.externalSubmission.findMany({
-          where: {
-            externalAccountId: { in: nonCfAccountIds },
-            submissionTime: { gte: startTs, lte: endTs },
-          },
-          select: { submissionTime: true },
-        })
-      : [],
-    prisma.userProblemAttempt.findMany({
-      where: {
-        userId,
-        createdAt: { gte: startDate, lte: endDate },
-      },
-      select: { createdAt: true },
-    }),
-    codeforcesAccount?.handle
-      ? getCodeforcesActivityByDate(codeforcesAccount.handle, year)
-      : Promise.resolve({} as Record<string, number>),
-  ]);
+  const [externalSubmissions, attempts, codePathSubmissions, cfActivity] =
+    await Promise.all([
+      nonCfAccountIds.length > 0
+        ? prisma.externalSubmission.findMany({
+            where: {
+              externalAccountId: { in: nonCfAccountIds },
+              submissionTime: { gte: startTs, lte: endTs },
+            },
+            select: { submissionTime: true },
+          })
+        : [],
+      prisma.userProblemAttempt.findMany({
+        where: {
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        select: { createdAt: true },
+      }),
+      prisma.codePathSubmission.findMany({
+        where: {
+          userId,
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        select: { createdAt: true },
+      }),
+      codeforcesAccount?.handle
+        ? getCodeforcesActivityByDate(codeforcesAccount.handle, year)
+        : Promise.resolve({} as Record<string, number>),
+    ]);
 
-  const byDate: Record<string, number> = {};
+  const codeprint: Record<string, number> = {};
 
-  for (const s of submissions) {
-    const d = new Date(s.submissionTime * 1000);
-    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    byDate[key] = (byDate[key] ?? 0) + 1;
+  for (const submission of externalSubmissions) {
+    incrementDateCount(codeprint, new Date(submission.submissionTime * 1000));
   }
-  for (const a of attempts) {
-    const d = new Date(a.createdAt);
-    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    byDate[key] = (byDate[key] ?? 0) + 1;
+  for (const attempt of attempts) {
+    incrementDateCount(codeprint, new Date(attempt.createdAt));
   }
-  for (const [key, count] of Object.entries(cfActivity)) {
-    byDate[key] = (byDate[key] ?? 0) + count;
+  for (const submission of codePathSubmissions) {
+    incrementDateCount(codeprint, new Date(submission.createdAt));
   }
 
-  return byDate;
+  return {
+    codeprint,
+    codeforces: cfActivity,
+  };
 };
+
+export interface GrowthSourceMonthStat {
+  submissions: number;
+  problemsSolved: number;
+}
 
 export interface MonthStat {
   year: number;
   month: number;
   monthLabel: string;
-  submissions: number;
-  problemsSolved: number;
+  codeprint: GrowthSourceMonthStat;
+  codeforces: GrowthSourceMonthStat;
 }
 
-const CF_ACCEPTED_VERDICTS = ["AC", "Accepted", "OK"];
+type MonthlyGrowthBucket = {
+  submissions: number;
+  solvedIds: Set<string>;
+};
+
+function monthKeyFromDate(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+}
+
+function ensureMonthBucket(
+  map: Map<string, MonthlyGrowthBucket>,
+  key: string,
+): MonthlyGrowthBucket {
+  if (!map.has(key)) {
+    map.set(key, { submissions: 0, solvedIds: new Set() });
+  }
+  return map.get(key)!;
+}
 
 /**
  * Fetch monthly growth (submissions + distinct accepted problems per month) from Codeforces API.
  * Paginates user.status and groups by month. Returns Map of "YYYY-MM" -> { submissions, solvedIds }.
  */
+async function getCodepathMonthlyGrowth(
+  userId: string,
+): Promise<Map<string, MonthlyGrowthBucket>> {
+  const byMonth = new Map<string, MonthlyGrowthBucket>();
+
+  const submissions = await prisma.codePathSubmission.findMany({
+    where: { userId },
+    select: { createdAt: true, problemId: true, verdict: true },
+  });
+
+  for (const submission of submissions) {
+    const key = monthKeyFromDate(new Date(submission.createdAt));
+    const entry = ensureMonthBucket(byMonth, key);
+    entry.submissions += 1;
+    if (submission.verdict === "AC") {
+      entry.solvedIds.add(submission.problemId);
+    }
+  }
+
+  return byMonth;
+}
+
 async function getCodeforcesMonthlyGrowth(
   handle: string,
-): Promise<Map<string, { submissions: number; solvedIds: Set<string> }>> {
-  const byMonth = new Map<string, { submissions: number; solvedIds: Set<string> }>();
+): Promise<Map<string, MonthlyGrowthBucket>> {
+  const byMonth = new Map<string, MonthlyGrowthBucket>();
   try {
     let from = 1;
     for (let page = 0; page < CF_STATUS_MAX_PAGES; page++) {
@@ -611,11 +609,7 @@ async function getCodeforcesMonthlyGrowth(
           s.problem?.contestId != null && s.problem?.index != null
             ? `${s.problem.contestId}${s.problem.index}`
             : null;
-        if (
-          problemId &&
-          s.verdict &&
-          CF_ACCEPTED_VERDICTS.includes(s.verdict)
-        ) {
+        if (problemId && isAcceptedVerdict(s.verdict)) {
           entry.solvedIds.add(problemId);
         }
       }
@@ -638,89 +632,52 @@ const MONTH_LABELS = [
 ];
 
 /**
- * Monthly growth stats from ExternalSubmission (non-Codeforces) and Codeforces API when user has linked CF.
+ * Monthly growth stats split by CodePath platform submissions and Codeforces history.
  */
 export const getMonthlyGrowthForUser = async (
   userId: string,
 ): Promise<MonthStat[]> => {
-  const accounts = await prisma.externalAccount.findMany({
-    where: { userId },
-    select: { id: true, platform: true, handle: true },
-  });
-  const codeforcesAccount = accounts.find((a) => a.platform === "Codeforces");
-  const nonCfAccountIds = accounts
-    .filter((a) => a.platform !== "Codeforces")
-    .map((a) => a.id.toString());
+  const cfHandle = await getCodeforcesHandleForUser(userId);
 
-  const acceptedVerdicts = ["AC", "Accepted", "OK"];
-  const byMonth = new Map<
-    string,
-    { submissions: number; solvedIds: Set<string> }
-  >();
-
-  const addToMonth = (
-    key: string,
-    submissions: number,
-    problemId: string | null,
-    accepted: boolean,
-  ) => {
-    if (!byMonth.has(key)) {
-      byMonth.set(key, { submissions: 0, solvedIds: new Set() });
-    }
-    const entry = byMonth.get(key)!;
-    entry.submissions += submissions;
-    if (accepted && problemId) entry.solvedIds.add(problemId);
-  };
-
-  const [dbSubmissions, cfMonthly] = await Promise.all([
-    nonCfAccountIds.length > 0
-      ? prisma.externalSubmission.findMany({
-          where: { externalAccountId: { in: nonCfAccountIds } },
-          select: {
-            submissionTime: true,
-            problemId: true,
-            verdict: true,
-          },
-        })
-      : [],
-    codeforcesAccount?.handle
-      ? getCodeforcesMonthlyGrowth(codeforcesAccount.handle)
-      : Promise.resolve(
-          new Map<string, { submissions: number; solvedIds: Set<string> }>(),
-        ),
+  const [codeprintMonthly, codeforcesMonthly] = await Promise.all([
+    getCodepathMonthlyGrowth(userId),
+    cfHandle
+      ? getCodeforcesMonthlyGrowth(cfHandle)
+      : Promise.resolve(new Map<string, MonthlyGrowthBucket>()),
   ]);
 
-  for (const s of dbSubmissions) {
-    const d = new Date(s.submissionTime * 1000);
-    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-    addToMonth(
-      key,
-      1,
-      s.problemId,
-      acceptedVerdicts.includes(s.verdict),
-    );
-  }
+  const allKeys = new Set([
+    ...codeprintMonthly.keys(),
+    ...codeforcesMonthly.keys(),
+  ]);
 
-  for (const [key, val] of cfMonthly.entries()) {
-    if (!byMonth.has(key)) {
-      byMonth.set(key, { submissions: 0, solvedIds: new Set() });
-    }
-    const entry = byMonth.get(key)!;
-    entry.submissions += val.submissions;
-    for (const id of val.solvedIds) entry.solvedIds.add(id);
-  }
+  return Array.from(allKeys)
+    .sort((a, b) => a.localeCompare(b))
+    .map((key) => {
+      const [yearStr, monthStr] = key.split("-");
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      const codeprint = codeprintMonthly.get(key) ?? {
+        submissions: 0,
+        solvedIds: new Set<string>(),
+      };
+      const codeforces = codeforcesMonthly.get(key) ?? {
+        submissions: 0,
+        solvedIds: new Set<string>(),
+      };
 
-  const sorted = Array.from(byMonth.entries()).sort((a, b) =>
-    a[0].localeCompare(b[0]),
-  );
-  return sorted.map(([key, val]) => {
-    const [y, m] = key.split("-").map(Number);
-    return {
-      year: y,
-      month: m,
-      monthLabel: `${MONTH_LABELS[m - 1]} ${y}`,
-      submissions: val.submissions,
-      problemsSolved: val.solvedIds.size,
-    };
-  });
+      return {
+        year,
+        month,
+        monthLabel: `${MONTH_LABELS[month - 1] ?? ""} ${year}`,
+        codeprint: {
+          submissions: codeprint.submissions,
+          problemsSolved: codeprint.solvedIds.size,
+        },
+        codeforces: {
+          submissions: codeforces.submissions,
+          problemsSolved: codeforces.solvedIds.size,
+        },
+      };
+    });
 };

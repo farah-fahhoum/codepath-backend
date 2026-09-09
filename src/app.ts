@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import fs from "fs";
+import path from "path";
 
 import { router as authRoutes } from "./routes/auth.api";
 import { router as userRoutes } from "./routes/user.api";
@@ -17,6 +18,8 @@ import { router as externalAccountRoutes } from "./routes/externalAccount.api";
 import { router as contestRoutes } from "./routes/contest.routes";
 import { router as coachRoutes } from "./routes/coach.routes";
 import { router as referenceRoutes } from "./routes/reference.routes";
+import { router as codepathProblemRoutes } from "./routes/codepathProblem.routes";
+import { router as insightRoutes } from "./routes/insight.api";
 
 const app = express();
 app.use(
@@ -35,7 +38,14 @@ app.use(
   }),
 );
 
-app.use(cors({ origin: ["http://localhost:3000"] }));
+const corsOrigins = (process.env.CORS_ORIGIN || "http://localhost:3001")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: corsOrigins }));
+
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Standard response envelope: { success, message, data }
 app.use((_req, res, next) => {
@@ -75,6 +85,8 @@ app.use("/external-accounts", externalAccountRoutes);
 app.use("/contests", contestRoutes);
 app.use("/coaches", coachRoutes);
 app.use("/reference", referenceRoutes);
+app.use("/insights", insightRoutes);
+app.use("/codepath-problems", codepathProblemRoutes);
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`Server is running on port ${process.env.PORT || 3000}`);

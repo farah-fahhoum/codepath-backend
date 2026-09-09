@@ -26,6 +26,7 @@ model User {
   favouriteProblems FavouriteProblem[]
   userProblemAttempts UserProblemAttempt[]
   userSkillAssessments UserSkillAssessment[]
+  skillSnapshot UserSkillSnapshot?
   learningProgresses UserLearningProgress[]
   userAchievements UserAchievement[]
   ownedLearningPaths LearningPath[]
@@ -34,6 +35,8 @@ model User {
   contestsCreated Contest[]
   contestParticipations ContestParticipant[]
   solutionSnippets SolutionSnippet[]
+  codePathProblemsCreated CodePathProblem[]
+  codePathSubmissions CodePathSubmission[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -46,6 +49,7 @@ model Profile {
   city String?
   organization String?
   bio String?
+  avatarUrl String?
   rating Int?
   problemsSolved Int?
   accuracy Int?
@@ -92,10 +96,23 @@ model ContactInquery {
 model QuizQuestion {
   id Int @id @default(autoincrement())
   questionTitle String
-  answer String
   score Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  options QuizOption[]
+}
+
+model QuizOption {
+  id Int @id @default(autoincrement())
+  questionId Int
+  optionText String
+  orderIndex Int
+  isCorrect Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
 }
 
 model FavouriteProblem {
@@ -114,6 +131,7 @@ model UserProblemAttempt {
   userId String
   externalProblemId String
   platform String
+  source String @default("external_sync")
   solved Boolean @default(false)
   attemptCount Int @default(0)
   bestExecutionTime Int?
@@ -146,6 +164,7 @@ model SkillLevel {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   assessments UserSkillAssessment[]
+  skillSnapshots UserSkillSnapshot[]
   learningPaths LearningPath[]
 }
 
@@ -160,6 +179,29 @@ model UserSkillAssessment {
   user User @relation(fields: [userId], references: [id])
   skillLevel SkillLevel @relation(fields: [skillLevelId], references: [id])
   @@unique([userId, assessmentType, skillLevelId])
+}
+
+model UserSkillSnapshot {
+  id String @id @default(cuid())
+  userId String @unique
+  tier String
+  rating Int?
+  confidence String
+  primarySource String
+  levelPreference String @default("auto")
+  assessmentMethod String @default("rules")
+  assessmentReasoning String?
+  syncStatus String @default("idle")
+  syncError String?
+  sourcesJson Json
+  skillLevelId Int?
+  computedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillLevel SkillLevel? @relation(fields: [skillLevelId], references: [id])
+
+  @@index([tier])
+  @@index([skillLevelId])
 }
 
 model LearningPath {
@@ -227,7 +269,6 @@ model Topic {
   updatedAt DateTime @updatedAt
   pathModules PathModule[]
   snippets SolutionSnippet[]
-  contestProblems ContestProblem[]
 }
 
 model UserLearningProgress {
@@ -283,7 +324,6 @@ model Problem {
   platform String @default("Codeforces")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  contestProblems ContestProblem[]
 }
 
 enum ContestStatus {
@@ -300,9 +340,12 @@ model Contest {
   description String?
   type String @default("VIRTUAL")
   status ContestStatus @default(DRAFT)
+  difficulty String @default("MEDIUM")
   durationMinutes Int
+  scheduledStartTime DateTime?
   freezeEnabled Boolean @default(true)
   freezeMinutes Int?
+  rulesOfEngagement String @default("[]")
   virtualStartTime DateTime?
   createdByUserId String
   createdAt DateTime @default(now())
@@ -316,17 +359,16 @@ model Contest {
 model ContestProblem {
   id String @id @default(cuid())
   contestId String
-  problemId Int
+  codePathProblemId String
   label String
   order Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  contest Contest @relation(fields: [contestId], references: [id])
-  problem Problem @relation(fields: [problemId], references: [id])
-  topicId Int?
-  topic Topic? @relation(fields: [topicId], references: [id])
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  codePathProblem CodePathProblem @relation(fields: [codePathProblemId], references: [id])
   submissions ContestSubmission[]
   @@unique([contestId, label])
+  @@unique([contestId, codePathProblemId])
 }
 
 model ContestParticipant {
@@ -334,6 +376,7 @@ model ContestParticipant {
   contestId String
   userId String
   virtualStartTime DateTime?
+  isVirtualReplay Boolean @default(false)
   penalty Int @default(0)
   solvedCount Int @default(0)
   rank Int?
@@ -351,6 +394,7 @@ model ContestSubmission {
   contestId String
   participantId String
   contestProblemId String
+  codePathSubmissionId String?
   verdict String
   submissionTimeMinutes Int
   programmingLanguage String
@@ -359,6 +403,7 @@ model ContestSubmission {
   contest Contest @relation(fields: [contestId], references: [id])
   participant ContestParticipant @relation(fields: [participantId], references: [id])
   contestProblem ContestProblem @relation(fields: [contestProblemId], references: [id])
+  codePathSubmission CodePathSubmission? @relation(fields: [codePathSubmissionId], references: [id], onDelete: SetNull)
 }
 
 enum BookingStatus {
@@ -414,4 +459,91 @@ model SolutionSnippet {
   updatedAt DateTime @updatedAt
   user User @relation(fields: [userId], references: [id])
   topic Topic? @relation(fields: [topicId], references: [id])
+}
+
+// First-party CodePath Problem Set (separate from CF catalog `Problem`)
+enum ProblemPublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum SubmissionVerdict {
+  AC
+  WA
+  TLE
+  RE
+  CE
+  JE
+}
+
+model CodePathProblem {
+  id                String               @id @default(cuid())
+  slug              String               @unique
+  title             String
+  statement         String
+  inputDescription  String
+  outputDescription String
+  constraints       String?
+  rating            Int                  // Codeforces-style rating (e.g. 800, 1200, 1600)
+  tags              String               // JSON string array, same style as CF Problem.tags
+  timeLimitMs       Int                  @default(2000)
+  memoryLimitMb     Int                  @default(256)
+  status            ProblemPublishStatus @default(DRAFT)
+  createdByUserId   String
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  createdBy         User                 @relation(fields: [createdByUserId], references: [id])
+  testCases         ProblemTestCase[]
+  submissions       CodePathSubmission[]
+  contestProblems   ContestProblem[]
+
+  @@index([status])
+  @@index([rating])
+}
+
+model ProblemTestCase {
+  id             String         @id @default(cuid())
+  problemId      String
+  input          String
+  expectedOutput String
+  isSample       Boolean        @default(false)
+  sortOrder      Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  problem        CodePathProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId, sortOrder])
+}
+
+model CodePathSubmission {
+  id          String            @id @default(cuid())
+  problemId   String
+  userId      String
+  language    String
+  code        String
+  verdict     SubmissionVerdict
+  passedCount Int               @default(0)
+  totalCount  Int               @default(0)
+  runtimeMs   Int?
+  message     String?
+  stderr      String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  problem            CodePathProblem    @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contestSubmissions ContestSubmission[]
+
+  @@index([userId, problemId, createdAt])
+  @@index([problemId, createdAt])
+}
+
+model Insight {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
 }

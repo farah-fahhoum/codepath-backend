@@ -204,20 +204,14 @@ export const getMenteesFromDB = async (
   // Get mentees levels
   const menteesWithLevels = await Promise.all(
     menteeRecords.map(async (mentee) => {
-      // Get the latest skill assessment for this mentee
-      const latestAssessment = await prisma.userSkillAssessment.findFirst({
+      const snapshot = await prisma.userSkillSnapshot.findUnique({
         where: { userId: mentee.id },
-        orderBy: { createdAt: "desc" },
-        include: {
-          skillLevel: {
-            select: { title: true },
-          },
-        },
+        select: { tier: true },
       });
 
       return {
         ...mentee,
-        level: latestAssessment?.skillLevel?.title || null,
+        level: snapshot?.tier ?? null,
       };
     }),
   );
@@ -245,15 +239,9 @@ export const getMenteeByIdFromDB = async (
     },
   });
 
-  // Get mentee level
-  const latestAssessment = await prisma.userSkillAssessment.findFirst({
+  const snapshot = await prisma.userSkillSnapshot.findUnique({
     where: { userId: id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      skillLevel: {
-        select: { title: true },
-      },
-    },
+    select: { tier: true },
   });
 
   let result: menteeDetails = {
@@ -264,7 +252,7 @@ export const getMenteeByIdFromDB = async (
     phone: menteeProfileRecord.phone,
     country: menteeProfileRecord.country,
     bio: menteeProfileRecord.bio,
-    level: latestAssessment?.skillLevel?.title || null,
+    level: snapshot?.tier ?? null,
     createdAt: menteeRecord.createdAt,
   };
   if (!menteeRecord) return null;
@@ -384,10 +372,8 @@ export const getNearbyMenteesFromDB = async (
           problemsSolved: true,
         },
       },
-      userSkillAssessments: {
-        select: { skillLevel: { select: { title: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 1,
+      skillSnapshot: {
+        select: { tier: true, rating: true, confidence: true },
       },
     },
   });
@@ -468,7 +454,7 @@ export const getNearbyMenteesFromDB = async (
       rating: profile.rating,
       accuracy: profile.accuracy,
       problemsSolved: profile.problemsSolved,
-      level: user.userSkillAssessments[0]?.skillLevel?.title ?? null,
+      level: user.skillSnapshot?.tier ?? null,
       similarityScore,
     });
   }

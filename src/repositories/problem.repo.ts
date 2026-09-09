@@ -47,6 +47,105 @@ export const getCodeforcesProblemsMap = async (): Promise<
   codeforcesMapCache = { map, expiresAt: now + CODEFORCES_MAP_TTL_MS };
   return map;
 };
+
+export type CodeforcesProblemListItem = {
+  title: string;
+  tags: string[];
+  rating: number | null;
+  index: string;
+  contestId: number;
+};
+
+export type CodeforcesListParams = {
+  page: number;
+  limit: number;
+  minRating?: number | null;
+  maxRating?: number | null;
+  tag?: string | null;
+  search?: string | null;
+  sort?: "rating_asc" | "rating_desc" | "title_asc";
+};
+
+export const listCodeforcesProblemsFromAPI = async (params: CodeforcesListParams) => {
+  const {
+    page,
+    limit,
+    minRating,
+    maxRating,
+    tag,
+    search,
+    sort = "rating_asc",
+  } = params;
+
+  const map = await getCodeforcesProblemsMap();
+  const allProblems: CodeforcesProblemListItem[] = Array.from(map.values()).map((p) => ({
+    title: p.title,
+    tags: p.tags,
+    rating: p.rating,
+    index: p.index,
+    contestId: p.contestId,
+  }));
+
+  const availableTags = [
+    ...new Set(allProblems.flatMap((p) => p.tags)),
+  ].sort((a, b) => a.localeCompare(b));
+
+  let filtered = allProblems;
+
+  if (minRating != null && minRating > 0) {
+    filtered = filtered.filter(
+      (p) => p.rating != null && p.rating >= minRating,
+    );
+  }
+  if (maxRating != null && maxRating > 0) {
+    filtered = filtered.filter(
+      (p) => p.rating != null && p.rating <= maxRating,
+    );
+  }
+  if (tag && tag !== "all") {
+    filtered = filtered.filter((p) => p.tags.includes(tag));
+  }
+
+  const q = search?.trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.index.toLowerCase().includes(q) ||
+        String(p.contestId).includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q)),
+    );
+  }
+
+  const ratingSort = (a: CodeforcesProblemListItem, b: CodeforcesProblemListItem) => {
+    const ar = a.rating ?? Number.MAX_SAFE_INTEGER;
+    const br = b.rating ?? Number.MAX_SAFE_INTEGER;
+    return ar - br;
+  };
+
+  if (sort === "rating_desc") {
+    filtered = [...filtered].sort((a, b) => {
+      const ar = a.rating ?? -1;
+      const br = b.rating ?? -1;
+      return br - ar;
+    });
+  } else if (sort === "title_asc") {
+    filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+  } else {
+    filtered = [...filtered].sort(ratingSort);
+  }
+
+  const total = filtered.length;
+  const start = (page - 1) * limit;
+  const items = filtered.slice(start, start + limit);
+
+  return {
+    items,
+    total,
+    availableTags,
+    totalPages: Math.ceil(total / limit) || 1,
+  };
+};
 export const getUserFavouriteProblemsFromDB = async (
   userId: string,
 ): Promise<favouriteProblem[]> => {
@@ -163,6 +262,18 @@ export const getProblemFromCodeforces = async (
         timeout,
       },
     );
+
+    const pageTitle = await page.title();
+    const finalUrl = page.url();
+    if (
+      /just a moment/i.test(pageTitle) ||
+      finalUrl.includes("__cf_chl") ||
+      finalUrl.includes("cdn-cgi/challenge")
+    ) {
+      throw new Error(
+        `Cloudflare blocked Codeforces scrape (title="${pageTitle}")`,
+      );
+    }
 
     // Extract complete problem data using page.evaluate
     const problemData = await page.evaluate(() => {

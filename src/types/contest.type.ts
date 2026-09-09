@@ -5,20 +5,22 @@ export type ContestStatusValue =
   | "COMPLETED"
   | "CANCELLED";
 
+export interface ContestCodePathProblemSummary {
+  id: string;
+  slug: string;
+  title: string;
+  rating: number;
+  tags: string[];
+}
+
 export interface ContestProblemSummary {
   id: string;
   label: string;
   order: number;
-  problem: {
-    id: number;
-    externalProblemId: string;
-    contestId: number;
-    index: string;
-    rating: number;
-    title: string | null;
-  } | null;
-  topic: { id: number; title: string } | null;
+  codePathProblem: ContestCodePathProblemSummary;
 }
+
+export type ContestDifficulty = "EASY" | "MEDIUM" | "HARD";
 
 export interface ContestSummary {
   id: string;
@@ -26,13 +28,24 @@ export interface ContestSummary {
   description: string | null;
   type: string;
   status: string;
+  difficulty: ContestDifficulty;
   durationMinutes: number;
+  scheduledStartTime: Date | null;
+  scheduledEndTime: Date | null;
   freezeEnabled: boolean;
   freezeMinutes: number | null;
   virtualStartTime: Date | null;
+  rulesOfEngagement: string[];
   createdAt: Date;
   problemCount: number;
   participantCount: number;
+  activeParticipantCount: number;
+  myProgress?: {
+    solvedCount: number;
+    totalProblems: number;
+    rank: number | null;
+    isParticipant: boolean;
+  };
 }
 
 export interface ScoreboardProblemCell {
