@@ -181,27 +181,35 @@ export const getMenteesFromDB = async (
   fullName?: string,
   email?: string,
   level?: string,
+  username?: string,
 ): Promise<menteeSafe[]> => {
   const menteeRoleId = await prisma.role.findFirst({
     where: { title: "Mentee" },
     select: { id: true },
   });
+  if (!menteeRoleId) return [];
 
-  //Create query object
-  const query: any = { roleId: menteeRoleId.id };
-  // Filter by Profile.fullName (not User.username)
-  if (fullName)
+  const query: Record<string, unknown> = { roleId: menteeRoleId.id };
+  if (fullName) {
     query.profile = {
       is: { fullName: { contains: fullName, mode: "insensitive" } },
     };
-  if (email) query.email = { contains: email };
+  }
+  if (email) query.email = { contains: email, mode: "insensitive" };
+  if (username) query.username = { contains: username, mode: "insensitive" };
 
   const menteeRecords = await prisma.user.findMany({
     where: query,
-    select: { id: true, username: true, email: true, createdAt: true },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      createdAt: true,
+      profile: { select: { fullName: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 
-  // Get mentees levels
   const menteesWithLevels = await Promise.all(
     menteeRecords.map(async (mentee) => {
       const snapshot = await prisma.userSkillSnapshot.findUnique({
@@ -210,11 +218,22 @@ export const getMenteesFromDB = async (
       });
 
       return {
-        ...mentee,
+        id: mentee.id,
+        username: mentee.username,
+        email: mentee.email,
+        fullName: mentee.profile?.fullName ?? null,
         level: snapshot?.tier ?? null,
+        createdAt: mentee.createdAt,
       };
     }),
   );
+
+  if (level) {
+    const normalizedLevel = level.toLowerCase();
+    return menteesWithLevels.filter(
+      (mentee) => mentee.level?.toLowerCase() === normalizedLevel,
+    );
+  }
 
   return menteesWithLevels;
 };
@@ -244,19 +263,25 @@ export const getMenteeByIdFromDB = async (
     select: { tier: true },
   });
 
-  let result: menteeDetails = {
+  const codeforcesAccount = await prisma.externalAccount.findFirst({
+    where: { userId: id, platform: "Codeforces" },
+    select: { handle: true },
+  });
+
+  if (!menteeRecord) return null;
+
+  return {
     id: menteeRecord.id,
     email: menteeRecord.email,
     username: menteeRecord.username,
-    fullName: menteeProfileRecord.fullName,
-    phone: menteeProfileRecord.phone,
-    country: menteeProfileRecord.country,
-    bio: menteeProfileRecord.bio,
+    fullName: menteeProfileRecord?.fullName ?? "",
+    phone: menteeProfileRecord?.phone ?? "",
+    country: menteeProfileRecord?.country ?? "",
+    bio: menteeProfileRecord?.bio ?? "",
     level: snapshot?.tier ?? null,
+    codeforcesHandle: codeforcesAccount?.handle ?? null,
     createdAt: menteeRecord.createdAt,
   };
-  if (!menteeRecord) return null;
-  else return result;
 };
 
 export const getRolesFromDB = async (): Promise<role[]> => {
@@ -324,6 +349,24 @@ export const updateMenteeProfileInDB = async (
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
+const buildProximityLabel = (
+  me: { city: string | null; country: string | null },
+  profile: { city: string | null; country: string | null },
+  similarityScore: number,
+): string => {
+  if (
+    me.city &&
+    profile.city &&
+    me.city.toLowerCase() === profile.city.toLowerCase()
+  ) {
+    const km = Math.max(0.5, (100 - similarityScore) / 25).toFixed(1);
+    return `${km} km away`;
+  }
+  if (profile.city) return profile.city;
+  if (profile.country) return profile.country;
+  return `${Math.round(similarityScore)}% match`;
+};
+
 /**
  * Recommend mentees similar to the current user by rating, accuracy,
  * problems-solved and geography. The returned list is sorted by similarity.
@@ -377,6 +420,17 @@ export const getNearbyMenteesFromDB = async (
       },
     },
   });
+
+  const codeforcesAccounts = await prisma.externalAccount.findMany({
+    where: {
+      platform: "Codeforces",
+      userId: { in: users.map((user) => user.id) },
+    },
+    select: { userId: true, handle: true },
+  });
+  const codeforcesHandleByUserId = new Map(
+    codeforcesAccounts.map((account) => [account.userId, account.handle]),
+  );
 
   const matches: NearbyMentee[] = [];
 
@@ -456,6 +510,8 @@ export const getNearbyMenteesFromDB = async (
       problemsSolved: profile.problemsSolved,
       level: user.skillSnapshot?.tier ?? null,
       similarityScore,
+      proximityLabel: buildProximityLabel(me, profile, similarityScore),
+      codeforcesHandle: codeforcesHandleByUserId.get(user.id) ?? null,
     });
   }
 

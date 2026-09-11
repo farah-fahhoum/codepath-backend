@@ -10,4 +10,6 @@ export interface NearbyMentee {
   problemsSolved: number | null;
   level: string | null;
   similarityScore: number;
+  proximityLabel: string;
+  codeforcesHandle: string | null;
 }

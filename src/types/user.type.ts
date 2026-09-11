@@ -12,7 +12,8 @@ export interface menteeSafe {
   id: string;
   username: string;
   email: string;
-  level?: string;
+  fullName: string | null;
+  level: string | null;
   createdAt: Date;
 }
 
@@ -24,7 +25,8 @@ export interface menteeDetails {
   phone: string;
   country: string;
   bio: string;
-  level?: string;
+  level: string | null;
+  codeforcesHandle: string | null;
   createdAt: Date;
 }
 
